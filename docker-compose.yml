@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    image: ${REGION:-asia-south1}-docker.pkg.dev/${GCP_PROJECT_ID:-local}/magnetar-images/magnetar-api:latest
+    container_name: magnetar-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
+      - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318/v1/traces
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-local}
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
+      - API_KEY=${API_KEY:-your-strong-api-key-here}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["*"]}
+      - INPUT_GUARD_MODEL_PATH=${INPUT_GUARD_MODEL_PATH:-./models/deberta-v3-base-prompt-injection}
+      - DEFAULT_TEMPERATURE=${DEFAULT_TEMPERATURE:-0.0}
+      - DEFAULT_SEED=${DEFAULT_SEED:-42}
+      - DEFAULT_MAX_TOKENS=${DEFAULT_MAX_TOKENS:-512}
+      - CACHE_TTL=${CACHE_TTL:-3600}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - REPORT_STORAGE=${REPORT_STORAGE:-local}
+      - REPORTS_DIR=${REPORTS_DIR:-./reports}
+    volumes:
+      - ./models:/app/models
+      - ./reports:/app/reports
+    depends_on:
+      - qdrant
+      - redis
+      - ollama
+      - jaeger
+    restart: unless-stopped
+    networks:
+      - magnetar-net
+    mem_limit: 4G
+    cpus: '2.0'
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.0
+    container_name: magnetar-qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    restart: unless-stopped
+    networks:
+      - magnetar-net
+    mem_limit: 2G
+    cpus: '1.0'
+
+  redis:
+    image: redis:7-alpine
+    container_name: magnetar-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - magnetar-net
+    mem_limit: 1G
+    cpus: '0.5'
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: magnetar-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    networks:
+      - magnetar-net
+    mem_limit: 8G
+    cpus: '4.0'
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: magnetar-jaeger
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+    volumes:
+      - jaeger_data:/badger
+    restart: unless-stopped
+    networks:
+      - magnetar-net
+    mem_limit: 1G
+    cpus: '0.5'
+
+  nginx:
+    image: nginx:alpine
+    container_name: magnetar-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    networks:
+      - magnetar-net
+    restart: unless-stopped
+    mem_limit: 256M
+    cpus: '0.2'
+
+volumes:
+  qdrant_storage:
+  redis_data:
+  ollama_data:
+  jaeger_data:
+
+networks:
+  magnetar-net:
+    driver: bridge
