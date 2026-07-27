@@ -1,0 +1,14 @@
+.env
+.git
+.gitignore
+node_modules
+models/
+frontend/node_modules
+frontend/dist
+*.pyc
+__pycache__
+*.log
+.DS_Store
+chroma_data/
+bm25_data/
+certificates/
