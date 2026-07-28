@@ -71,18 +71,27 @@ The system remains fully functional even under adversarial conditions, including
 
 ## 🧠 System Architecture
 
-User (Browser)
-│
-▼
-Nginx (Reverse Proxy + Static Frontend)
-│
-▼
-FastAPI Backend
-│
-├─▶ Redis (cache, job queue)
-├─▶ Qdrant (vector database for RAG)
-├─▶ Ollama (local GPU inference)
-└─▶ Tavily (optional, for legal web search)
+## Architecture
+
+```text
+                 User (Browser)
+                        │
+                        ▼
+        Nginx (Reverse Proxy + Static Frontend)
+                        │
+                        ▼
+                 FastAPI Backend
+                        │
+        ┌───────────────┼────────────────┐
+        │               │                │
+        ▼               ▼                ▼
+     Redis           Qdrant          Ollama
+ (Cache/Queue)   (Vector Store)   (Local LLM)
+
+                        │
+                        ▼
+           Tavily API (Optional Web Search)
+```
 
 
 
@@ -109,44 +118,18 @@ All services run via Docker Compose, except Ollama which runs natively on the ho
 ---
 
 ## 📂 Project Structure
-'''
-magnetar-webstack/
-├── .env.example
-├── docker-compose.yml
-├── Dockerfile
-├── nginx.conf
-├── requirements.txt
-├── README.md
-├── frontend/
-│   ├── src/
-│   │   ├── App.tsx
-│   │   ├── api.ts
-│   │   ├── components/
-│   │   └── styles/
-│   ├── package.json
-│   ├── tailwind.config.js
-│   └── vite.config.ts
-├── app/
-│   ├── main.py
-│   ├── core/
-│   │   ├── auth.py
-│   │   ├── config.py
-│   │   ├── guards.py
-│   │   ├── rag.py
-│   │   ├── document_parser.py
-│   │   └── ...
-│   ├── models/
-│   │   └── schemas.py
-│   └── routers/
-│       ├── ask.py
-│       ├── upload.py
-│       └── audit.py
-├── scripts/
-│   └── download_models.py
-└── models/
-    ├── deberta-v3-base-prompt-injection/
-    └── all-MiniLM-L6-v2/
-'''
+## System Architecture
+
+```mermaid
+flowchart TD
+    U[User Browser] --> N[Nginx<br/>Reverse Proxy + Static Frontend]
+    N --> A[FastAPI Backend]
+
+    A --> R[Redis<br/>Cache & Job Queue]
+    A --> Q[Qdrant<br/>Vector Database]
+    A --> O[Ollama<br/>Local GPU Inference]
+    A --> T[Tavily API<br/>Optional Legal Search]
+```
 ---
 
 ## 🧪 Step-by-Step System Demonstration
