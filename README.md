@@ -109,45 +109,42 @@ All services run via Docker Compose, except Ollama which runs natively on the ho
 ---
 
 ## 📂 Project Structure
-'''
 magnetar-webstack/
-│── .env.example
-│── docker-compose.yml
-│── Dockerfile
-│── nginx.conf
-│── requirements.txt
-│── README.md
-│── frontend/
-│ ├── src/
-│ │ ├── App.tsx
-│ │ ├── api.ts
-│ │ ├── components/
-│ │ └── styles/
-│ ├── package.json
-│ ├── tailwind.config.js
-│ └── vite.config.ts
-│── app/
-│ ├── main.py
-│ ├── core/
-│ │ ├── auth.py
-│ │ ├── config.py
-│ │ ├── guards.py
-│ │ ├── rag.py
-│ │ ├── document_parser.py
-│ │ └── ...
-│ ├── models/
-│ │ └── schemas.py
-│ ├── routers/
-│ │ ├── ask.py
-│ │ ├── upload.py
-│ │ └── audit.py
-│ └── core/audit_workflow.py
+├── .env.example
+├── docker-compose.yml
+├── Dockerfile
+├── nginx.conf
+├── requirements.txt
+├── README.md
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── api.ts
+│   │   ├── components/
+│   │   └── styles/
+│   ├── package.json
+│   ├── tailwind.config.js
+│   └── vite.config.ts
+├── app/
+│   ├── main.py
+│   ├── core/
+│   │   ├── auth.py
+│   │   ├── config.py
+│   │   ├── guards.py
+│   │   ├── rag.py
+│   │   ├── document_parser.py
+│   │   └── ...
+│   ├── models/
+│   │   └── schemas.py
+│   └── routers/
+│       ├── ask.py
+│       ├── upload.py
+│       └── audit.py
 ├── scripts/
-│ └── download_models.py
+│   └── download_models.py
 └── models/
-├── deberta-v3-base-prompt-injection/
-└── all-MiniLM-L6-v2/
-'''
+    ├── deberta-v3-base-prompt-injection/
+    └── all-MiniLM-L6-v2/
 
 ---
 
