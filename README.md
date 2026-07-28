@@ -70,7 +70,7 @@ The system remains fully functional even under adversarial conditions, including
 ---
 
 ## 🧠 System Architecture
-'''
+
 User (Browser)
 │
 ▼
@@ -83,7 +83,7 @@ FastAPI Backend
 ├─▶ Qdrant (vector database for RAG)
 ├─▶ Ollama (local GPU inference)
 └─▶ Tavily (optional, for legal web search)
-'''
+
 
 
 All services run via Docker Compose, except Ollama which runs natively on the host for direct GPU access.
