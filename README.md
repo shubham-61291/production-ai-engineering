@@ -109,6 +109,7 @@ All services run via Docker Compose, except Ollama which runs natively on the ho
 ---
 
 ## 📂 Project Structure
+'''
 magnetar-webstack/
 ├── .env.example
 ├── docker-compose.yml
@@ -145,7 +146,7 @@ magnetar-webstack/
 └── models/
     ├── deberta-v3-base-prompt-injection/
     └── all-MiniLM-L6-v2/
-
+'''
 ---
 
 ## 🧪 Step-by-Step System Demonstration
