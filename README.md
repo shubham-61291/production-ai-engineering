@@ -32,24 +32,25 @@ The system is designed for **enterprise policy Q&A, legal document analysis, and
 ---
 
 ## 🏗️ Architecture
-┌─────────────┐ ┌──────────────┐ ┌─────────────────────┐
-│ Frontend │────▶│ Nginx │────▶│ FastAPI Backend │
-│ (React) │ │ (reverse │ │ (app.py) │
-└─────────────┘ │ proxy) │ └─────────────────────┘
-└──────────────┘ │
-▼
-┌─────────────────┐
-│ Hybrid RAG │
-│ (ChromaDB + │
-│ BM25) │
-└─────────────────┘
-│
-┌─────────────────┐
-│ Ollama GPU │
-│ (DeepSeek‑R1) │
-└─────────────────┘
-
-text
+```text
++-------------+      +--------------+      +----------------------+
+|  Frontend   | ---> |    Nginx     | ---> |   FastAPI Backend    |
+|   (React)   |      | (Reverse     |      |      (app.py)        |
+|             |      |    Proxy)    |      |                      |
++-------------+      +--------------+      +----------+-----------+
+                                                        |
+                                                        v
+                                           +-------------------------+
+                                           |       Hybrid RAG        |
+                                           |   ChromaDB + BM25       |
+                                           +------------+------------+
+                                                        |
+                                                        v
+                                           +-------------------------+
+                                           |      Ollama GPU         |
+                                           |      DeepSeek-R1        |
+                                           +-------------------------+
+```
 
 **Services:** `api`, `redis`, `jaeger`, `nginx`, `certbot` (optional).  
 Ollama runs natively on the host for direct GPU access.
