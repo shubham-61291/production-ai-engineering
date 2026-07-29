@@ -84,7 +84,7 @@ Configure environment
 
 bash
 cp .env.example .env
-# Edit .env and set API_KEY, REDIS_PASSWORD, OLLAMA_URL 
+Edit .env and set API_KEY, REDIS_PASSWORD, OLLAMA_URL 
 Download required models
 
 bash
