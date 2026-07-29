@@ -80,28 +80,36 @@ Ollama runs natively on the host for direct GPU access.
    ```bash
    git clone https://github.com/shubham-61291/magnetar-ai.git
    cd magnetar-ai
-Configure environment
+
+2. **Configure environment***
 
 bash
 cp .env.example .env
 Edit .env and set API_KEY, REDIS_PASSWORD, OLLAMA_URL 
-Download required models
+
+3. **Download required models**
 
 bash
 python scripts/download_models.py
-Build frontend
+
+4. **Build frontend**
 
 bash
 cd frontend && npm install && npm run build && cd ..
-Start the stack
+
+5. **Start the stack**
 
 bash
 docker compose up -d --build
-Access the UI
+
+6. **Access the UI**
+
 Open http://<your‑vm‑ip> in a browser. Enter your API key to authenticate.
 
-📖 Usage
+## 📖 Usage
+
 Upload a document
+
 Open the dashboard and enter your API key.
 
 Click + Choose Document and select a PDF, DOCX, or TXT file.
