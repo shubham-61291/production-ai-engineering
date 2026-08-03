@@ -53,6 +53,11 @@ class RagQueryRequest(BaseModel):
     ollama_url: str = DEFAULT_OLLAMA_URL
     ollama_model: str = DEFAULT_OLLAMA_MODEL
 
+class DeployRequest(BaseModel):
+    html: str
+    bucket_name: str = os.getenv("GCP_BUCKET_NAME", "aetheris-generated-sites")
+    key_content: str = ""
+
 @app.get("/api/v1/health")
 def health_check():
     return {"status": "online", "system": "AETHERIS-WEBFORGE Engine", "security_guardrails": "active"}
@@ -100,6 +105,22 @@ def rag_query_api(req: RagQueryRequest):
         "answer": verified_answer,
         "security_check": "Passed" if grounded else "Failed Context Grounding Check"
     }
+
+@app.post("/api/v1/deploy")
+def deploy_site(req: DeployRequest):
+    import tempfile, base64
+    if not req.key_content:
+        return {"success": False, "message": "Please upload your GCP service account key."}
+    try:
+        key_bytes = base64.b64decode(req.key_content)
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as tmp:
+            tmp.write(key_bytes.decode('utf-8'))
+            tmp.flush()
+            result = deploy_to_gcp_bucket(req.html, tmp.name, req.bucket_name)
+        os.unlink(tmp.name)
+        return result
+    except Exception as e:
+        return {"success": False, "message": str(e)}
 
 @app.get("/api/v1/download-zip")
 def download_zip():
@@ -182,14 +203,12 @@ def serve_dashboard():
                 <label>Website Purpose & Prompt</label>
                 <textarea id="prompt" rows="4" placeholder="Describe your web application... e.g. Sleek AI product showcase page with particle background, dark glassmorphism cards, and interactive pricing..."></textarea>
 
-                <label>LLM Engine Provider</label>
-                <select id="provider">
-                    <option value="ollama">Local Brain (Ollama DeepSeek-R1 32B)</option>
-                    <option value="openai">OpenAI API</option>
-                </select>
-
-                <label>Ollama Server Endpoint / API Key</label>
-                <input id="endpoint" value="http://localhost:11434/v1" placeholder="Endpoint or API Key" />
+                <div style="margin-top:12px;">
+                    <label style="font-size:13px;color:#94a3b8;">GCP Service Account Key (JSON)</label>
+                    <input type="file" id="gcp-key-file" accept=".json" style="width:100%; margin-top:4px;" />
+                </div>
+                <button onclick="deployToGCP()" style="margin-top:12px;background:linear-gradient(135deg,#6366f1,#a855f7)">🚀 Deploy to GCP</button>
+                <div id="deploy-status" class="status-box" style="margin-top:8px;display:none;"></div>
 
                 <button onclick="generateWebApp()">✨ Forge Customer-Lovable Web App</button>
                 <div id="status" class="status-box">System Status: Online. Ready to forge web apps.</div>
@@ -315,10 +334,42 @@ def serve_dashboard():
 
         window.addEventListener('DOMContentLoaded', initMagnetarScene);
 
+        async function deployToGCP() {
+            const status = document.getElementById("deploy-status");
+            status.style.display = "block";
+            status.textContent = "⏳ Deploying to GCP...";
+            const iframe = document.getElementById("preview-frame");
+            const html = iframe.srcdoc;
+            if (!html || html.includes("will render here")) {
+                status.textContent = "❌ No generated website to deploy.";
+                return;
+            }
+            const keyFile = document.getElementById("gcp-key-file").files[0];
+            if (!keyFile) {
+                status.textContent = "❌ Please upload your GCP service account key first.";
+                return;
+            }
+            const keyContent = await keyFile.text();
+            const keyBase64 = btoa(keyContent);
+            try {
+                const res = await fetch("/api/v1/deploy", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ html: html, key_content: keyBase64 })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    status.innerHTML = `✅ ${data.message}<br><a href="${data.public_url}" target="_blank" style="color:#38bdf8;">Open Site</a>`;
+                } else {
+                    status.textContent = "❌ " + data.message;
+                }
+            } catch(e) {
+                status.textContent = "❌ Network Error: " + e.message;
+            }
+        }
+
         async function generateWebApp() {
             const prompt = document.getElementById("prompt").value;
-            const provider = document.getElementById("provider").value;
-            const endpoint = document.getElementById("endpoint").value;
             const status = document.getElementById("status");
 
             if (!prompt) {
@@ -332,13 +383,7 @@ def serve_dashboard():
                 const res = await fetch("/api/v1/generate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        prompt: prompt,
-                        provider: provider,
-                        ollama_url: provider === "ollama" ? endpoint : "http://localhost:11434/v1",
-                        openai_key: provider === "openai" ? endpoint : "",
-                        rag_enabled: true
-                    })
+                    body: JSON.stringify({ prompt: prompt })
                 });
 
                 const data = await res.json();
