@@ -59,9 +59,9 @@ The Qwen2.5‑Coder model generates a fully functional HTML file with PDF manipu
 
 ### 3. One‑Click GCP Deployment
 With a single click, the generated website is uploaded to Google Cloud Storage and a public URL is returned.
-![Deployed on GCP](./lov3.png)
+![Deployed on GCP](./lov3gcpdeployed.png)
 
-*The live deployed PDF toolkit can be accessed at the URL shown in the last screenshot (bucket permissions are set to public).*
+
 
 ---
 
