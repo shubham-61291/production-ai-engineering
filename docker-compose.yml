@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5-coder:32b
+      - DEFAULT_PROVIDER=ollama
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
