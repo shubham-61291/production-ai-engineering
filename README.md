@@ -71,3 +71,133 @@ With a single click, the generated website is uploaded to Google Cloud Storage a
    ```bash
    git clone https://github.com/shubham-61291/aetheris-webforge.git
    cd aetheris-webforge
+
+
+
+2. **🚀 Configure Environment**
+
+Copy the example environment file and update the required values.
+
+```bash
+cp .env.example .env
+```
+
+Edit the `.env` file and set:
+
+```env
+OLLAMA_BASE_URL=
+OLLAMA_MODEL=qwen2.5-coder:32b
+```
+
+---
+
+3. **🐳 Build & Start the Docker Container**
+
+Build the Docker image:
+
+```bash
+docker build -t aetheris-webforge .
+```
+
+Run the container:
+
+```bash
+docker run -d \
+  --name aetheris \
+  -p 7860:7860 \
+  --env-file .env \
+  --restart unless-stopped \
+  aetheris-webforge
+```
+
+---
+
+## 🌐 Access the Dashboard
+
+Open the following URL in your browser:
+
+```text
+http://<your-vm-ip>:7860
+```
+
+---
+
+# 🛠️ Usage
+
+## ✨ Generate a Website
+
+1. Type a detailed description of the website you want.
+
+   Example:
+
+   > Create a PDF tool page like iLovePDF with merge, split, compress functions.
+
+2. Click **✨ Generate Website**.
+
+3. Wait approximately **30–60 seconds**.
+
+4. The generated website will appear in the **live preview** panel.
+
+---
+
+## 🚀 Deploy to Google Cloud Storage (GCP)
+
+Click the **🚀 Deploy to GCP** button.
+
+The generated HTML is uploaded directly to your **Google Cloud Storage** bucket.
+
+### Features
+
+- No service account key required.
+- Uses the VM's built-in identity for authentication.
+- Default bucket:
+
+```text
+aetheris-generated-sites
+```
+
+You can change the bucket name in the `.env` file.
+
+### Make the Website Public
+
+Run the following command **once** in **Cloud Shell**:
+
+```bash
+gsutil iam ch allUsers:objectViewer gs://aetheris-generated-sites
+```
+
+---
+
+# ⚠️ Important Notes
+
+- The system prompt is optimized for **enterprise-grade code generation**.
+  You can customize it in:
+
+  ```text
+  core/generator.py
+  ```
+
+- The AI **never** adds:
+  - Branding
+  - Logos
+  - External links
+
+  unless they are explicitly requested.
+
+- No user data is collected or stored.
+  All website generation happens **locally on your VM**.
+
+- GCP deployment requires the VM to have the **Storage Admin** IAM role.
+  This is already available when using the configured `http-server` service account.
+
+---
+
+# 👨‍💻 Author
+
+**Shubham Singh**
+
+---
+
+# 📜 License
+
+MIT License
