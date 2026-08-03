@@ -4,13 +4,18 @@ from config import DEFAULT_EMBED_MODEL, DEFAULT_OLLAMA_MODEL
 
 def inject_brand_header(base_html: str) -> str:
     header = """
-<!-- AETHERIS Brand Banner -->
-<div style="background:linear-gradient(90deg, #090d16 0%, #1e1b4b 100%);color:#f8fafc;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <span style="background:#6366f1;color:#fff;padding:2px 8px;border-radius:6px;font-weight:700;font-size:12px;">AETHERIS</span>
-    <span style="font-weight:600;opacity:0.9;">Sovereign Web Application Platform</span>
+<!-- AETHERIS / Magnetar Brand Header -->
+<div style="background:linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);color:#f8fafc;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:100;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <img src="https://res.cloudinary.com/dud3yhilm/image/upload/v1761113319/Gemini_Generated_Image_f6b5ff6b5ff6b5ff_aqa9q6.png" alt="Magnetar Labs Logo" style="height:40px;width:auto;" />
+    <div>
+      <div style="font-size:22px;font-weight:800;background:linear-gradient(90deg, #22d3ee 0%, #d946ef 50%, #ec4899 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:0.5px;">Magnetar Labs</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:-2px;">Engineering the Path to Singularity</div>
+    </div>
   </div>
-  <div style="font-size:12px;opacity:0.75;">Document-Grounded Intelligence & Cloud Deployment Engine</div>
+  <div style="font-size:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);padding:6px 14px;border-radius:20px;backdrop-filter:blur(8px);">
+    Enterprise Grade AI Integration
+  </div>
 </div>
 """
     if "<body" in base_html:
@@ -31,13 +36,13 @@ def inject_rag_bot(base_html: str, doc_chunks: List[str], embed_model: str = DEF
     position: fixed;
     bottom: 28px;
     right: 28px;
-    width: 60px;
-    height: 60px;
+    width: 62px;
+    height: 62px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #06b6d4 0%, #d946ef 100%);
     color: #ffffff;
     border: none;
-    box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+    box-shadow: 0 10px 30px rgba(217, 70, 239, 0.4);
     cursor: pointer;
     z-index: 99999;
     display: flex;
@@ -46,52 +51,52 @@ def inject_rag_bot(base_html: str, doc_chunks: List[str], embed_model: str = DEF
     font-size: 26px;
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }}
-  #aetheris-rag-fab:hover {{ transform: scale(1.08); }}
+  #aetheris-rag-fab:hover {{ transform: scale(1.1); box-shadow: 0 14px 40px rgba(217, 70, 239, 0.6); }}
 
   #aetheris-rag-drawer {{
     position: fixed;
     bottom: 100px;
     right: 28px;
-    width: 420px;
+    width: 430px;
     max-width: calc(100vw - 32px);
-    height: 600px;
+    height: 620px;
     max-height: calc(100vh - 120px);
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(10, 10, 15, 0.94);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 20px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
     z-index: 99998;
     display: none;
     flex-direction: column;
     overflow: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     color: #f8fafc;
   }}
 
-  .rag-header {{ padding: 16px 20px; background: rgba(30, 41, 59, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between; }}
+  .rag-header {{ padding: 16px 20px; background: rgba(20, 20, 30, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: space-between; }}
   .rag-body {{ flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }}
   .rag-msg {{ max-width: 85%; padding: 12px 16px; border-radius: 14px; font-size: 14px; line-height: 1.5; }}
-  .rag-msg-user {{ align-self: flex-end; background: #4f46e5; color: #ffffff; border-bottom-right-radius: 4px; }}
-  .rag-msg-bot {{ align-self: flex-start; background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.08); }}
-  .rag-citation {{ font-size: 11px; background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); padding: 4px 8px; border-radius: 6px; margin-top: 6px; display: inline-block; }}
-  .rag-footer {{ padding: 14px; background: rgba(15, 23, 42, 0.95); border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; gap: 8px; }}
+  .rag-msg-user {{ align-self: flex-end; background: linear-gradient(135deg, #0284c7 0%, #7c3aed 100%); color: #ffffff; border-bottom-right-radius: 4px; }}
+  .rag-msg-bot {{ align-self: flex-start; background: #181824; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); }}
+  .rag-citation {{ font-size: 11px; background: rgba(34, 211, 238, 0.15); color: #67e8f9; border: 1px solid rgba(34, 211, 238, 0.3); padding: 4px 8px; border-radius: 6px; margin-top: 6px; display: inline-block; }}
+  .rag-footer {{ padding: 14px; background: rgba(10, 10, 15, 0.98); border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; gap: 8px; }}
 </style>
 
-<button id="aetheris-rag-fab" onclick="toggleRagDrawer()" title="Ask AETHERIS AI">🤖</button>
+<button id="aetheris-rag-fab" onclick="toggleRagDrawer()" title="Ask Magnetar AI">🤖</button>
 
 <div id="aetheris-rag-drawer">
   <div class="rag-header">
     <div style="display:flex;align-items:center;gap:10px;">
-      <div style="width:10px;height:10px;border-radius:50%;background:#10b981;"></div>
-      <div style="font-weight:700;font-size:16px;">AETHERIS AI Assistant</div>
+      <div style="width:10px;height:10px;border-radius:50%;background:#22d3ee;box-shadow:0 0 10px #22d3ee;"></div>
+      <div style="font-weight:700;font-size:16px;background:linear-gradient(90deg, #22d3ee, #d946ef);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Magnetar AI Assistant</div>
     </div>
     <button onclick="toggleRagDrawer()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;">✕</button>
   </div>
 
   <div class="rag-body" id="rag-chat-history">
     <div class="rag-msg rag-msg-bot">
-      👋 Welcome to AETHERIS Sovereign Assistant. Ask any question regarding the document policy.
+      👋 Welcome to Magnetar Labs AI Assistant. Ask any question regarding your uploaded document policy.
     </div>
   </div>
 
@@ -115,10 +120,10 @@ def inject_rag_bot(base_html: str, doc_chunks: List[str], embed_model: str = DEF
 
     <div style="display:flex;gap:8px;margin-top:4px;">
       <input id="rag-input-box" placeholder="Ask a question..."
-        style="flex:1;padding:10px 14px;font-size:14px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#f8fafc;"
+        style="flex:1;padding:10px 14px;font-size:14px;border-radius:8px;border:1px solid #334155;background:#181824;color:#f8fafc;"
         onkeypress="if(event.key==='Enter') sendRagMessage()" />
       <button onclick="sendRagMessage()"
-        style="padding:10px 18px;font-size:14px;font-weight:600;border-radius:8px;border:none;background:#4f46e5;color:#fff;cursor:pointer;">
+        style="padding:10px 18px;font-size:14px;font-weight:700;border-radius:8px;border:none;background:linear-gradient(135deg, #0284c7 0%, #d946ef 100%);color:#fff;cursor:pointer;">
         Send
       </button>
     </div>
