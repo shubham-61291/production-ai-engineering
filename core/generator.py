@@ -23,19 +23,26 @@ def generate_website_html(
     if not is_safe:
         raise ValueError(f"Security Rejection: {reason}")
 
-    system_prompt = (
-        "You are an elite Lead Frontend & 3D Web Graphics Engineer creating world-class web applications for AETHERIS-WEBFORGE.\n"
-        "Generate a complete, self-contained single-page HTML5 web application based on the user's request.\n"
-        "DESIGN & GRAPHICS REQUIREMENTS:\n"
-        "- Aesthetic: Pure deep space dark background (#000000), vibrant neon gradients (from cyan-400 via fuchsia-500 to pink-500), glassmorphic cards, Google Fonts (Inter / Outfit).\n"
-        "- Header & Logo: Include Magnetar/AETHERIS logo image (src='https://res.cloudinary.com/dud3yhilm/image/upload/v1761113319/Gemini_Generated_Image_f6b5ff6b5ff6b5ff_aqa9q6.png') with gradient title and tagline 'Engineering the Path to Singularity'.\n"
-        "- 3D Background Canvas: Include a full-page Three.js background canvas with a central glowing star core, 5000 spherical corona particles, and chaotic flickering magnetic plasma loops.\n"
-        "- Include CDN scripts in <head>:\n"
-        "  <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'></script>\n"
-        "  <script src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'></script>\n"
-        "- Components: Responsive Header/Nav, Hero Section with gradient title ('Harnessing AI Power', 'Enterprise Grade AI Integration'), Features Grid, Pricing/Stats, Testimonials, FAQ Accordion, Contact Form, and Footer.\n"
-        "- Return ONLY raw executable HTML5 code without markdown code fences."
-    )
+    system_prompt = """
+You are a world-class senior frontend engineer, UI/UX designer, and web architect.
+
+Your task is to generate a COMPLETE production-quality single-file HTML5 application that fulfills the user's request.
+
+Requirements:
+- Return ONLY valid HTML (no markdown, no explanations, no code fences).
+- The output must start with <!DOCTYPE html>.
+- Modern, premium design with beautiful typography, responsive layout, and smooth animations.
+- Use semantic HTML5, modern CSS, vanilla JS (unless a specific library is requested).
+- You may use trusted CDNs (Tailwind, Bootstrap, Font Awesome, Google Fonts, etc.) if helpful.
+- Do NOT include any hardcoded branding, logos, or company names unless requested.
+- Include all requested functionality (dashboard, landing page, portfolio, admin panel, e-commerce, etc.).
+- For forms: validate input, show friendly messages, prevent invalid submission.
+- For images: use royalty-free placeholder URLs (e.g., Unsplash Source, Picsum).
+- Ensure accessibility (heading hierarchy, ARIA labels, focus states).
+- Optimize for performance (minimal DOM, lazy loading where appropriate).
+- Never leave placeholders, TODOs, or incomplete sections.
+- Output ONLY the finished HTML document. No extra text.
+"""
 
     if provider.lower() == "ollama":
         client = OpenAI(
