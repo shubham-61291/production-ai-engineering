@@ -1,27 +1,73 @@
-# ⚡ AETHERIS-WEBFORGE Platform
-### Security-Hardened AI Web Generator, Document-Grounded RAG, & Production GCP Deployment Engine
+# ⚡ AETHERIS‑WEBFORGE
 
-![AETHERIS-WEBFORGE](https://img.shields.io/badge/AETHERIS-WEBFORGE-indigo?style=for-the-badge)
-![Security Hardened](https://img.shields.io/badge/Security-Input%20%26%20Output%20Hardened-red?style=for-the-badge)
-![FastAPI Platform](https://img.shields.io/badge/Platform-FastAPI%20%7C%20ASGI-emerald?style=for-the-badge)
-![GCP Production Ready](https://img.shields.io/badge/GCP-Cloud%20Run%20%26%20GCS-4285F4?style=for-the-badge)
+**AI‑Powered Web Application Generator, Hardened RAG, & One‑Click GCP Deployment Engine**
 
 ---
 
 ## 📖 Overview
 
-**AETHERIS-WEBFORGE** is an end-to-end AI platform engineered to generate **Customer-Lovable Grade** static web applications, embed a **hardened document-grounded RAG assistant**, and deploy live cloud infrastructure directly to an end-customer's **Google Cloud Platform (GCP)** environment.
+AETHERIS‑WEBFORGE is a production‑ready platform that turns natural language prompts into **complete, self‑contained HTML5 web applications**.  
+It uses a **local GPU‑accelerated AI brain** (Qwen2.5‑Coder 32B via Ollama) to generate professional, functional websites entirely on‑premise.
+
+Every generated application is:
+- **Client‑side ready** – single HTML file with all CSS/JS embedded.
+- **Deployable in one click** – directly to Google Cloud Storage with a public URL.
+- **Security‑hardened** – prompt injection guard, output sanitisation, and rate limiting.
+- **Royalty‑free** – no branding, logos, or proprietary assets added.
+
+The system demonstrates a full AI‑to‑production pipeline:  
+`Prompt → AI Generation → Live Website`
 
 ---
 
-## 📁 Repository Location
+## 🚀 Features
 
-`C:\Users\micro\.gemini\antigravity\scratch\aetheris-webforge`
+- **🧠 Local AI Brain** – Qwen2.5‑Coder 32B (or any Ollama model) running on GPU.
+- **🛡️ Security Guardrails** – Prompt injection detection and output filtering.
+- **📦 One‑Click GCP Deploy** – Uploads generated HTML to a Cloud Storage bucket (no API keys required).
+- **⚡ Zero‑Setup Deployment** – The VM’s built‑in identity handles authentication automatically.
+- **🎨 Clean, Modern UI** – Responsive dashboard with live preview iframe.
+- **📂 Support for External Libraries** – The AI can use CDN‑based frameworks (Tailwind, Bootstrap, PDF‑lib, jsPDF, etc.) when appropriate.
 
 ---
 
-## 🛡️ Key System Highlights
-- **Hardened RAG Security**: Prompt injection defense, document chunk sanitization, and output context grounding verification.
-- **FastAPI ASGI Backend**: High-concurrency REST endpoints (`/api/v1/generate`, `/api/v1/rag/query`, `/api/v1/deploy`).
-- **Customer-Lovable Web Application Bundles**: Modern CSS tokens (Google Fonts Inter, glassmorphism, responsive navigation, feature grids, floating RAG assistant drawer with source citations).
-- **1-Click GCP Deployer**: `deploy_gcp.sh` for Cloud Run container deployment & Google Cloud Storage bucket static web hosting.
+## 🧠 Technology Stack
+
+| Component         | Technology                                      |
+|-------------------|-------------------------------------------------|
+| Language          | Python 3.10                                     |
+| Backend           | FastAPI, Uvicorn                                |
+| Frontend          | Vanilla HTML/CSS/JS (served directly)           |
+| AI Inference      | Ollama, Qwen2.5‑Coder 32B (GPU)                 |
+| Security          | Custom prompt injection guard (regex + heuristics) |
+| Deployment        | Google Cloud Storage (Python client)            |
+| Infrastructure    | Docker, Google Cloud GPU VM (L4)                |
+
+---
+
+## 📸 Live Demonstration – PDF World
+
+*The following screenshots show a complete end‑to‑end workflow using AETHERIS‑WEBFORGE to generate a **PDF toolkit website** similar to iLovePDF.*
+
+### 1. Main Interface & Prompt
+The user enters a detailed prompt describing the desired application.
+![AETHERIS Interface](./lov1.png)
+
+### 2. AI‑Generated Web Application
+The Qwen2.5‑Coder model generates a fully functional HTML file with PDF manipulation tools (merge, split, compress, convert, etc.).
+![Generated PDF Tool Website](./lov2.png)
+
+### 3. One‑Click GCP Deployment
+With a single click, the generated website is uploaded to Google Cloud Storage and a public URL is returned.
+![Deployed on GCP](./lov3.png)
+
+*The live deployed PDF toolkit can be accessed at the URL shown in the last screenshot (bucket permissions are set to public).*
+
+---
+
+## ⚡ Quick Start (Deploy on a GPU VM)
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/shubham-61291/aetheris-webforge.git
+   cd aetheris-webforge
