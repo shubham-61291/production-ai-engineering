@@ -44,16 +44,14 @@ def save_site(html: str, site_dir: str = "./generated_site", zip_path: str = "./
 
     return zip_path, index_path
 
-def deploy_to_gcp_bucket(html: str, json_key_path: str, bucket_name: str) -> Dict[str, Any]:
+def deploy_to_gcp_bucket(html: str, json_key_path: str = None, bucket_name: str = "aetheris-generated-sites") -> Dict[str, Any]:
     bucket_name = bucket_name.strip()
     try:
-        if not os.path.exists(json_key_path):
-            return {
-                "success": False,
-                "message": f"Deployment Error: GCP Service Account Key file not found at '{json_key_path}'"
-            }
+        if json_key_path:
+            client = storage.Client.from_service_account_json(json_key_path)
+        else:
+            client = storage.Client()
 
-        client = storage.Client.from_service_account_json(json_key_path)
         bucket = client.bucket(bucket_name)
 
         if not bucket.exists():
@@ -69,10 +67,10 @@ def deploy_to_gcp_bucket(html: str, json_key_path: str, bucket_name: str) -> Dic
         bucket.patch()
 
         blob_index = bucket.blob("index.html")
-        blob_index.upload_from_string(html, content_type="text/html", cache_control="public, max-age=3600")
+        blob_index.upload_from_string(html, content_type="text/html")
 
         blob_404 = bucket.blob("404.html")
-        blob_404.upload_from_string(create_404_html(), content_type="text/html", cache_control="public, max-age=3600")
+        blob_404.upload_from_string(create_404_html(), content_type="text/html")
 
         public_url = f"https://storage.googleapis.com/{bucket_name}/index.html"
         website_endpoint = f"http://{bucket_name}.storage.googleapis.com/index.html"
