@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  mcp-control-lab:
+    build: .
+    ports:
+      - "7860:7860"
+    environment:
+      - AI_BRAIN_BASE_URL=${AI_BRAIN_BASE_URL:-http://host.docker.internal:11434/v1}
+      - AI_BRAIN_MODEL=${AI_BRAIN_MODEL:-deepseek-r1:32b}
+      - VECTOR_STORE_PROVIDER=chroma
+      - CHROMA_PERSIST_DIR=/app/chroma_db
+    volumes:
+      - ./chroma_db:/app/chroma_db
+    restart: unless-stopped
