@@ -210,7 +210,7 @@ docker compose up -d --build
 curl -H "X-API-Key: your-api-key" http://localhost:8000/health
 
 Open http://<your-vm-ip> in a browser, log in with your API key, and start chatting.
-'''
+```
 
 ##👨‍💻 Author
 Shubham Singh
