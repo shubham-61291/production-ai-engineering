@@ -1,0 +1,145 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install trufflehog
+        run: curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+      - name: Run trufflehog
+        run: trufflehog git file://. --only-verified --fail
+      - name: Install bandit
+        run: pip install bandit
+      - name: Run bandit (fail on high/critical)
+        run: bandit -r app/ -ll -f json -o bandit-report.json
+      - name: Upload bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+  build-and-deploy:
+    needs: security-scan
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    env:
+      REGION: asia-south1
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Authenticate to GCP via OIDC
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Google Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGION }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - name: Build and push API image
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          REPO: magnetar-images
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/$PROJECT_ID/$REPO/magnetar-api:latest .
+          docker tag ${{ env.REGION }}-docker.pkg.dev/$PROJECT_ID/$REPO/magnetar-api:latest \
+                     ${{ env.REGION }}-docker.pkg.dev/$PROJECT_ID/$REPO/magnetar-api:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/$PROJECT_ID/$REPO/magnetar-api:latest
+          docker push ${{ env.REGION }}-docker.pkg.dev/$PROJECT_ID/$REPO/magnetar-api:${{ github.sha }}
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          VITE_API_URL=/api/v1 npm run build
+          cd ..
+
+      - name: Generate .env from secrets
+        run: |
+          echo "ENVIRONMENT=production" > .env
+          echo "API_KEY=${{ secrets.API_KEY }}" >> .env
+          echo "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}" >> .env
+          echo "GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}" >> .env
+          echo "REGION=${{ env.REGION }}" >> .env
+          EXTERNAL_IP=$(gcloud compute instances describe ${{ secrets.GCP_VM_NAME }} --zone=${{ secrets.GCP_ZONE }} --format='value(networkInterfaces[0].accessConfigs[0].natIP)' 2>/dev/null || true)
+          CORS_LIST="[\"https://your-frontend-domain.com\""
+          if [ -n "$EXTERNAL_IP" ]; then
+            CORS_LIST="$CORS_LIST,\"http://$EXTERNAL_IP\""
+          fi
+          CORS_LIST="$CORS_LIST]"
+          echo "CORS_ORIGINS=$CORS_LIST" >> .env
+          echo "REDIS_URL=redis://redis:6379" >> .env
+          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
+          echo "OLLAMA_URL=http://172.17.0.1:11434" >> .env
+          echo "OLLAMA_MODEL=deepseek-r1:32b" >> .env
+          echo "INPUT_GUARD_MODEL_PATH=./models/deberta-v3-base-prompt-injection" >> .env
+          echo "RATE_LIMIT_PER_MINUTE=50" >> .env
+          echo "DEFAULT_TEMPERATURE=0.0" >> .env
+          echo "DEFAULT_SEED=42" >> .env
+          echo "DEFAULT_MAX_TOKENS=512" >> .env
+          echo "CACHE_TTL=3600" >> .env
+          echo "CHROMA_PERSIST_DIR=./chroma_data" >> .env
+          echo "BM25_DATA_DIR=./bm25_data" >> .env
+          echo "MAX_UPLOAD_SIZE_MB=10" >> .env
+          echo "DOMAIN=${{ secrets.DOMAIN }}" >> .env
+          echo "CERTBOT_EMAIL=${{ secrets.CERTBOT_EMAIL }}" >> .env
+
+      - name: Deploy to GCP VM via SSH (IAP + OS Login)
+        env:
+          VM_NAME: ${{ secrets.GCP_VM_NAME }}
+          ZONE: ${{ secrets.GCP_ZONE }}
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          gcloud config set project $PROJECT_ID
+          gcloud compute ssh $VM_NAME --zone=$ZONE --tunnel-through-iap --command="
+            mkdir -p ~/magnetar-ai/frontend/dist
+            mkdir -p ~/magnetar-ai/chroma_data ~/magnetar-ai/bm25_data
+            sudo chown -R 1000:1000 ~/magnetar-ai/chroma_data ~/magnetar-ai/bm25_data
+          "
+          gcloud compute scp --tunnel-through-iap --recurse frontend/dist/ $VM_NAME:~/magnetar-ai/frontend/dist/ --zone=$ZONE
+          gcloud compute scp --tunnel-through-iap .env $VM_NAME:~/magnetar-ai/.env --zone=$ZONE
+          gcloud compute scp --tunnel-through-iap docker-compose.yml $VM_NAME:~/magnetar-ai/docker-compose.yml --zone=$ZONE
+          gcloud compute scp --tunnel-through-iap nginx.conf.template $VM_NAME:~/magnetar-ai/nginx.conf.template --zone=$ZONE
+          gcloud compute scp --tunnel-through-iap nginx-startup.sh $VM_NAME:~/magnetar-ai/nginx-startup.sh --zone=$ZONE
+          gcloud compute ssh $VM_NAME --zone=$ZONE --tunnel-through-iap --command="
+            cd ~/magnetar-ai
+            export REGION=${{ env.REGION }}
+            export GCP_PROJECT_ID=$PROJECT_ID
+            docker compose -f docker-compose.yml pull
+            docker compose -f docker-compose.yml up -d
+            for i in {1..10}; do
+              if curl -f http://localhost:8000/health; then
+                echo 'Service healthy'
+                exit 0
+              fi
+              echo \"Health check attempt \$i failed, retrying in 5s...\"
+              sleep 5
+            done
+            echo 'Service failed health check after retries'
+            exit 1
+          "
