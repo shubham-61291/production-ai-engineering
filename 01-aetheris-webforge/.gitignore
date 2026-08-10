@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+generated_site/
+generated_site.zip
+*.json
+
+.DS_Store
+.vscode/
+.idea/
