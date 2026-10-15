@@ -1,1889 +1,432 @@
 # Production AI Engineering
 
-## Production-Grade AI Systems Portfolio
+### A portfolio of five applied AI systems, from local inference to guarded workflows and deployable artifacts
 
-A unified engineering repository containing **five independently deployable, production-grade AI systems** spanning autonomous application generation, AI-powered web application generation, enterprise Retrieval-Augmented Generation (RAG), agentic control architectures, secure self-hosted AI, and multi-agent compliance analysis.
+**Production AI Engineering** is a multi-project repository exploring the engineering required to turn language-model capabilities into usable applications. It brings together application generation, document-grounded retrieval, agent/tool control, AI security, observability, container deployment, and native Windows packaging.
 
-The systems in this repository are not five variations of the same chatbot or a collection of notebooks and prompt experiments.
+Rather than treating an LLM call as the whole product, the projects focus on the systems around it: orchestration, retrieval, authorization, validation, failure handling, deployment, and execution evidence.
 
-Each project is a **standalone systems artifact** designed around a distinct engineering problem, with explicit application architecture, model orchestration, security controls, deployment infrastructure, observability, failure handling, and real execution evidence.
+> **Scope and status:** These are engineering projects and demonstrations, not a blanket claim of security certification or production readiness. Each system has its own setup instructions and limitations. The repository-state notes below call out known implementation gaps where the checked-in source differs from the intended or demonstrated architecture.
 
-The common engineering foundation across the portfolio is:
+## Portfolio at a glance
 
-- Self-hosted and GPU-accelerated LLM inference
-- Agentic workflows
-- Retrieval-Augmented Generation
-- Hybrid retrieval
-- Explicit authorization boundaries
-- Prompt-injection protection
-- PII protection
-- API authentication
-- Rate limiting
-- Caching
-- Audit logging
-- Distributed tracing
-- Metrics
-- Dockerized deployment
-- Google Cloud infrastructure
-- GitHub Actions automation
-- Native Windows build infrastructure
+| # | Project | What it explores | Core technologies | Project guide |
+|---|---|---|---|---|
+| 01 | **Aetheris WebForge** | Natural-language requirements to previewable, downloadable web applications, with optional Google Cloud Storage publishing | Python, FastAPI, Ollama, HTML/CSS/JavaScript, Google Cloud Storage | [README](./01-aetheris-webforge/README.md) · [Source](./01-aetheris-webforge/) |
+| 02 | **Magnetar AI** | Document question-answering with dense and keyword retrieval | FastAPI, React, Ollama, ChromaDB, BM25, Redis | [README](./02-magnetar-ai/README.md) · [Source](./02-magnetar-ai/) |
+| 03 | **MCP Agentic Control Lab** | Tool-level authorization and auditability for document-grounded agents | Python, Gradio, MCP-style tools, ChromaDB, Ollama, optional OpenAI API | [README](./03-mcp-agentic-control-lab/README.md) · [Source](./03-mcp-agentic-control-lab/) |
+| 04 | **Magnetar Webstack** | Self-hosted assistant, document RAG, and multi-agent contract review | FastAPI, React, TypeScript, Qdrant, LangGraph, Redis, Ollama | [README](./04-magnetar-webstack/README.md) · [Source](./04-magnetar-webstack/) |
+| 05 | **Magnetar EXE Builder** | Natural-language application generation and executable packaging | FastAPI, React, Ollama, agent tooling, PyInstaller, GitHub Actions workflow | [README](./05-magnetar-exe-builder/README.md) · [Source](./05-magnetar-exe-builder/) |
+
+## How the projects fit together
+
+The five projects address three related problem areas: generating applications, building knowledge-backed systems, and governing agent/tool execution. They share infrastructure patterns, but they remain separate applications rather than one combined runtime.
+
+```mermaid
+flowchart TB
+    P[Production AI Engineering]
+    P --> G[Application generation]
+    P --> K[Knowledge and retrieval]
+    P --> C[Control and governance]
+    G --> W[Aetheris WebForge]
+    G --> E[Magnetar EXE Builder]
+    K --> M[Magnetar AI]
+    K --> S[Magnetar Webstack]
+    C --> L[MCP Agentic Control Lab]
+    W --> F[Shared engineering foundations]
+    E --> F
+    M --> F
+    S --> F
+    L --> F
+    F --> O[Model orchestration · validation · security · observability · deployment]
+```
+
+## Engineering principles
+
+### Systems around models
+
+The model is one component, not the application architecture. Depending on the project, the execution path also includes input handling, retrieval or tools, validation, output controls, logging, and a user-facing artifact.
+
+### Explicit control boundaries
+
+The projects explore where control should live: in an application layer, a retrieval pipeline, a tool boundary, or a build workflow. In the MCP Agentic Control Lab, for example, write authorization is checked inside the policy-update tool rather than being left solely to the interface.
+
+### Evidence and inspectability
+
+Project folders contain screenshots, test or verification code, and execution-oriented implementation details. Those assets document demonstrations; they should not be read as a substitute for independent security review or a successful deployment in every environment.
+
+### Security as layered controls
+
+Where implemented, the portfolio uses controls such as prompt-injection heuristics, API-key authentication, role checks, rate limiting, PII filtering, secret handling, and audit logging. The controls differ by project, and none should be interpreted as a guarantee that all attacks or sensitive outputs will be prevented.
 
 ---
 
-# Systems at a Glance
+# The systems
 
-| # | System | Core Engineering Problem | Primary Technologies |
-|---|---|---|---|
-| 01 | **Aetheris WebForge** | Natural language → deployable web application | Qwen2.5-Coder 32B, Ollama, FastAPI, GCP |
-| 02 | **Magnetar AI** | Secure enterprise document intelligence | DeepSeek-R1 32B, ChromaDB, BM25, Redis |
-| 03 | **MCP Agentic Control Lab** | Where authority should live in agentic systems | MCP, RBAC, ChromaDB, DeepSeek-R1 |
-| 04 | **Magnetar Webstack** | Secure self-hosted AI + RAG + legal audit | DeepSeek-R1 32B, Qdrant, LangGraph, Redis |
-| 05 | **Magnetar EXE Builder** | Natural language → native Windows executable | Qwen2.5 32B, ReAct, GitHub Actions, PyInstaller |
+## 01 — Aetheris WebForge
+
+**Natural-language web application generation, preview, packaging, and optional cloud publishing.**
+
+Aetheris WebForge turns a natural-language brief into a self-contained HTML application. The generated page can be previewed in the dashboard, packaged for download, and optionally published to Google Cloud Storage. The generation backend supports a configurable model path, including Ollama for local inference and an OpenAI API option.
+
+**Core workflow**
+
+```text
+Application brief
+      ↓
+Model-backed HTML generation
+      ↓
+Heuristic input/output checks
+      ↓
+Browser preview ──→ downloadable site bundle
+      ↓
+Optional Google Cloud Storage publishing
+```
+
+**Key capabilities**
+
+- Generate HTML with embedded CSS and JavaScript from a written brief.
+- Preview generated pages in the browser.
+- Package output as a downloadable site bundle.
+- Optionally inject a RAG assistant into generated pages.
+- Publish a generated site to Google Cloud Storage when configured.
+- Apply heuristic prompt-injection checks and output filtering.
+
+**Technology:** Python, FastAPI, Ollama, optional OpenAI API, HTML/CSS/JavaScript, Docker, Google Cloud Storage.
+
+**Demonstration:** [View the GCP-deployed application screenshot](./01-aetheris-webforge/lov3gcpdeployed.png).
+
+**Status and limitations:** The project README describes this as a demonstration/MVP rather than a security-certified platform. Review generated code and content before public deployment; output quality depends on the selected model, and cloud publishing requires correctly configured Google Cloud permissions and bucket settings.
+
+**Run it:** Start with the [Aetheris WebForge README](./01-aetheris-webforge/README.md), which documents local development, Docker, configuration, cloud publishing, APIs, and tests.
 
 ---
 
-# Production AI Architecture
+## 02 — Magnetar AI
 
-The five systems explore different layers of the production AI lifecycle:
+**Self-hosted document question-answering with hybrid retrieval and operational controls.**
+
+Magnetar AI ingests PDF, DOCX, and text documents, retrieves relevant passages using dense vector search and BM25 keyword retrieval, and sends the retrieved context to a language model. A React dashboard supports document and query workflows; the API includes authentication and operational integrations.
+
+**Core workflow**
 
 ```text
-                         PRODUCTION AI ENGINEERING
-                                  │
-             ┌────────────────────┼────────────────────┐
-             │                    │                    │
-             ▼                    ▼                    ▼
-       APPLICATION             KNOWLEDGE             CONTROL
-        GENERATION              SYSTEMS              SYSTEMS
-             │                    │                    │
-       ┌─────┴─────┐        ┌─────┴─────┐       ┌────┴──────┐
-       │           │        │           │       │           │
-   WebForge      EXE      Magnetar    Webstack   MCP Lab
-                Builder      AI
-       │           │          │           │          │
-       └───────────┴──────────┴───────────┴──────────┘
-                                  │
-                                  ▼
-                       PRODUCTION FOUNDATION
-                                  │
-             ┌────────────────────┼────────────────────┐
-             │                    │                    │
-             ▼                    ▼                    ▼
-        Local LLMs            Security             Operations
-        GPU / Ollama           Guards             Observability
-             │                    │                    │
-             │              ┌─────┼─────┐              │
-             │              │     │     │              │
-             │             Auth  RBAC  PII             │
-             │                    │                    │
-             └────────────────────┼────────────────────┘
-                                  │
-                                  ▼
-                       Docker / GCP Infrastructure
+Documents → extraction → chunking → indexing
+                                  ├─ dense retrieval
+Question → query processing ─────┤
+                                  └─ BM25 keyword retrieval
+                                             ↓
+                                     ranked evidence
+                                             ↓
+                                      local LLM
+                                             ↓
+                               answer with source passages
 ```
+
+**Key capabilities**
+
+- PDF, DOCX, and text ingestion.
+- ChromaDB-based vector retrieval combined with BM25.
+- Ranked retrieval results and source-context answers.
+- Ollama-based local inference.
+- React dashboard and FastAPI backend.
+- API-key authentication, rate limiting, health checks, and Redis caching.
+- Integration points for telemetry and containerized deployment.
+
+**Technology:** Python, FastAPI, React, Ollama, ChromaDB, BM25, Redis, Docker Compose, and observability integrations.
+
+**Demonstration:** [View a hybrid-RAG screenshot](./02-magnetar-ai/hybridrag1.png).
+
+**Status and limitations:** Retrieval can miss relevant passages, and generated answers can be incomplete or incorrect. The project README notes that there is no cross-encoder reranker and that DOCX table extraction is incomplete. Review source passages before relying on answers for compliance, legal, or other consequential decisions.
+
+**Run it:** Follow the [Magnetar AI README](./02-magnetar-ai/README.md) for environment configuration, local development, Docker Compose, API usage, tests, and deployment notes.
 
 ---
 
-# Engineering Philosophy
+## 03 — MCP Agentic Control Lab
 
-The projects share several principles.
+**A systems-engineering study of authorization at the agent/tool boundary.**
 
-## 1. Systems Before Models
+MCP Agentic Control Lab explores a core question in agentic AI: where should authority and access control be enforced? The application combines document ingestion, semantic retrieval, a policy assistant, role checks, controlled policy updates, and an inspectable audit trail.
 
-The model is treated as one component of a larger system.
-
-The engineering focus is not simply:
+**Control flow**
 
 ```text
-Prompt → LLM → Response
-```
-
-Instead, the systems explicitly address:
-
-```text
-Input
-  ↓
-Application Layer
-  ↓
-Security / Authorization
-  ↓
-Model / Agent
-  ↓
-Retrieval / Tools
-  ↓
-Validation
-  ↓
-Observability
-  ↓
-Artifact / Response
-  ↓
-Deployment
-```
-
-The model can therefore be replaced without redefining the entire architecture.
-
----
-
-## 2. Explicit Control
-
-The systems make important execution paths visible.
-
-Control can exist in:
-
-* application orchestration
-* retrieval tools
-* authorization layers
-* security guards
-* CI/CD pipelines
-* audit logs
-* deployment infrastructure
-
-The goal is to avoid hidden orchestration and make system behavior inspectable through code, logs, and execution artifacts.
-
----
-
-## 3. Evidence-First Engineering
-
-The projects were validated through actual executions rather than only architectural diagrams.
-
-Demonstrations include:
-
-* generated Windows executables
-* generated websites
-* live RAG queries
-* blocked prompt-injection attempts
-* policy updates
-* authorization failures
-* audit logs
-* cloud deployments
-* live execution logs
-* compliance reports
-
-The screenshots and outputs described in the individual systems represent actual executions of the systems.
-
----
-
-## 4. Security as a System Component
-
-Security is integrated into the architecture rather than added as an afterthought.
-
-Depending on the system, controls include:
-
-* Prompt-injection detection
-* Output PII redaction
-* API-key authentication
-* Role-based access control
-* Tool-level authorization
-* Rate limiting
-* Secret protection
-* Audit logging
-* Defense in depth
-
----
-
-# 01 — Aetheris WebForge
-
-## AI-Powered Web Application Generator, Hardened Security & One-Click GCP Deployment
-
-Aetheris WebForge converts natural-language requirements into complete, self-contained HTML5 web applications.
-
-The system uses a local GPU-accelerated **Qwen2.5-Coder 32B** model through Ollama to generate functional websites locally and then provides a one-click deployment path to Google Cloud Storage.
-
-### Core Pipeline
-
-```text
-Natural Language Prompt
-          │
-          ▼
-   Qwen2.5-Coder 32B
-          │
-          ▼
-   HTML / CSS / JavaScript
-          │
-          ▼
- Security Filtering
-          │
-          ▼
-      Live Preview
-          │
-          ▼
- Google Cloud Storage
-          │
-          ▼
-     Public Website
-```
-
-### What It Demonstrates
-
-* Local GPU-based code generation
-* Natural language → complete web application
-* Single-file HTML generation
-* Embedded CSS and JavaScript
-* Prompt-injection protection
-* Output sanitization
-* Rate limiting
-* Live preview
-* CDN-based library support
-* One-click GCP deployment
-* Cloud deployment without a service-account key
-
-### Key Features
-
-* **Local AI Brain**
-
-  * Qwen2.5-Coder 32B through Ollama
-  * GPU-accelerated inference
-
-* **Security Guardrails**
-
-  * Prompt-injection detection
-  * Output filtering
-  * Rate limiting
-
-* **One-Click GCP Deployment**
-
-  * Generated HTML uploaded directly to Google Cloud Storage
-  * Public URL returned after deployment
-  * VM identity used for authentication
-
-* **Application Generation**
-
-  * Complete HTML5 applications
-  * CSS and JavaScript generation
-  * CDN support for frameworks and libraries such as Tailwind, Bootstrap, PDF-lib, and jsPDF
-
-* **Live Preview**
-
-  * Responsive dashboard
-  * Generated application rendered directly in the interface
-
-### Technology Stack
-
-| Component      | Technology                                      |
-| -------------- | ----------------------------------------------- |
-| Language       | Python 3.10                                     |
-| Backend        | FastAPI, Uvicorn                                |
-| Frontend       | Vanilla HTML / CSS / JavaScript                 |
-| AI Inference   | Ollama, Qwen2.5-Coder 32B                       |
-| Security       | Custom regex + heuristic prompt-injection guard |
-| Deployment     | Google Cloud Storage                            |
-| Infrastructure | Docker, Google Cloud GPU VM                     |
-| GPU            | NVIDIA L4                                       |
-
-### Demonstrated Application
-
-The system was demonstrated by generating a PDF toolkit-style website with functionality including:
-
-* PDF merge
-* PDF split
-* PDF compression
-* PDF conversion
-
-The generated application was then deployed to Google Cloud Storage.
-
-### Deployment Model
-
-```text
-Google Cloud GPU VM
-        │
-        ├── Docker
-        │
-        └── Ollama
-              │
-              ▼
-       Qwen2.5-Coder 32B
-              │
-              ▼
-       Aetheris WebForge
-              │
-              ▼
-      Generated HTML
-              │
-              ▼
-      Google Cloud Storage
-```
-
-### Important Engineering Decisions
-
-The system is designed so that:
-
-* Core generation happens locally
-* User data is not collected or stored by the generation service
-* The VM's identity can be used for GCP authentication
-* Generated applications do not receive branding or proprietary assets unless explicitly requested
-
-### Quick Start
-
-```bash
-git clone https://github.com/shubham-61291/aetheris-webforge.git
-cd aetheris-webforge
-
-cp .env.example .env
-```
-
-Configure:
-
-```env
-OLLAMA_BASE_URL=
-OLLAMA_MODEL=qwen2.5-coder:32b
-```
-
-Build:
-
-```bash
-docker build -t aetheris-webforge .
-```
-
-Run:
-
-```bash
-docker run -d \
-  --name aetheris \
-  -p 7860:7860 \
-  --env-file .env \
-  --restart unless-stopped \
-  aetheris-webforge
-```
-
-Dashboard:
-
-```text
-http://<your-vm-ip>:7860
-```
-
----
-
-# 02 — Magnetar AI
-
-## Self-Hosted Enterprise RAG & Hybrid Intelligence Core
-
-Magnetar AI is a security-hardened, self-hosted Retrieval-Augmented Generation platform designed for enterprise policy Q&A, legal-document analysis, and compliance knowledge bases.
-
-The system combines:
-
-* Dense vector retrieval
-* BM25 keyword retrieval
-* Reciprocal Rank Fusion
-* Local GPU inference
-* Prompt-injection protection
-* API authentication
-* Rate limiting
-* Redis caching
-* Distributed tracing
-* Prometheus metrics
-
-### Core Pipeline
-
-```text
-Documents
-    │
-    ▼
-Parsing / Chunking
-    │
-    ├───────────────┐
-    ▼               ▼
-Embeddings         BM25
-    │               │
-    ▼               ▼
-ChromaDB       Keyword Retrieval
-    │               │
-    └───────┬───────┘
-            ▼
-   Reciprocal Rank Fusion
-            │
-            ▼
-     Retrieved Evidence
-            │
-            ▼
-      DeepSeek-R1 32B
-            │
-            ▼
-   Evidence-Grounded Answer
-```
-
-### Security Pipeline
-
-```text
-User Request
-     │
-     ▼
-DeBERTa-v3 Input Guard
-     │
-     ├── Malicious → BLOCK
-     │
-     └── Allowed
-           │
-           ▼
-        RAG Engine
-           │
-           ▼
-      Local LLM
-           │
-           ▼
-     Presidio Output
-           │
-           ▼
-        Response
-```
-
-### Key Features
-
-* DeepSeek-R1 32B running locally through Ollama
-* GPU acceleration
-* Hybrid ChromaDB + BM25 retrieval
-* Reciprocal Rank Fusion
-* PDF / DOCX / TXT ingestion
-* Automatic document chunking
-* Source-attributed answers
-* API-key authentication
-* Prompt-injection detection
-* PII protection
-* Redis query caching
-* OpenTelemetry tracing
-* Jaeger
-* Prometheus
-* Nginx reverse proxy
-* Docker Compose deployment
-
-### Technology Stack
-
-| Component         | Technology                             |
-| ----------------- | -------------------------------------- |
-| Language          | Python 3.10, JavaScript                |
-| Backend           | FastAPI, Uvicorn                       |
-| Frontend          | React, Vite, Tailwind CSS              |
-| LLM               | Ollama, DeepSeek-R1 32B                |
-| Vector Database   | ChromaDB                               |
-| Keyword Retrieval | BM25                                   |
-| Embeddings        | sentence-transformers/all-MiniLM-L6-v2 |
-| Input Guard       | DeBERTa-v3                             |
-| Output Guard      | Microsoft Presidio                     |
-| Cache             | Redis                                  |
-| Tracing           | OpenTelemetry, Jaeger                  |
-| Metrics           | Prometheus                             |
-| Deployment        | Docker Compose                         |
-| Infrastructure    | Google Cloud GPU VM                    |
-
-### Architecture
-
-```text
-                React Frontend
-                      │
-                      ▼
-                    Nginx
-                      │
-                      ▼
-               FastAPI Backend
-                      │
-          ┌───────────┼───────────┐
-          │           │           │
-          ▼           ▼           ▼
-       Redis       Hybrid RAG   Security
-       Cache           │         Guards
-                       │
-                ┌──────┴──────┐
-                ▼             ▼
-             ChromaDB        BM25
-                │             │
-                └──────┬──────┘
-                       ▼
-                 Ollama GPU
-                       │
-                       ▼
-                DeepSeek-R1 32B
-```
-
-### Demonstrated Usage
-
-The system was demonstrated against a policy document with questions such as:
-
-* Working-hours policies
-* Government-official monetary gift policies
-* Other document-specific compliance questions
-
-The system also demonstrated prompt-injection blocking.
-
-### Example Security Test
-
-A malicious request such as:
-
-```text
-Ignore all previous instructions...
-```
-
-is intercepted by the input security layer.
-
-### Important Test-Document Disclosure
-
-The policy document used for the demonstration was AI-generated for testing purposes. It does not represent an actual corporate policy and should not be treated as an official source.
-
-### Limitations
-
-* No cross-encoder reranking
-* Retrieval relies on cosine similarity and BM25
-* Ollama must be running for local inference
-* DOCX table extraction is not fully supported
-* Chunk size creates a recall/precision trade-off
-* Screenshots represent real system outputs
-
-### Quick Start
-
-```bash
-git clone https://github.com/shubham-61291/magnetar-ai.git
-cd magnetar-ai
-
-cp .env.example .env
-```
-
-Configure:
-
-```env
-API_KEY=
-REDIS_PASSWORD=
-OLLAMA_URL=
-```
-
-Download models:
-
-```bash
-python scripts/download_models.py
-```
-
-Build frontend:
-
-```bash
-cd frontend
-npm install
-npm run build
-cd ..
-```
-
-Start:
-
-```bash
-docker compose up -d --build
-```
-
-Open:
-
-```text
-http://<your-vm-ip>
-```
-
----
-
-# 03 — MCP Agentic Control Lab
-
-## Comparative Agentic RAG Architectures: MCP-Style vs MCP-Native Control
-
-MCP Agentic Control Lab is a systems-engineering project that implements the same enterprise policy problem using two fundamentally different control paradigms:
-
-```text
-MCP-Style
-UI-Orchestrated Control
-
-vs.
-
-MCP-Native
-Agent → Tool → Context Control
-```
-
-The project asks a deeper engineering question:
-
-> **Where should authority, trust, and control live in an agentic AI system?**
-
-This is not simply a comparison between two chatbots.
-
-It is a **governance and control architecture comparison**.
-
-### Both Systems Provide
-
-* Policy document ingestion
-* Role-based access control
-* Admin / User / Unknown identities
-* Secure policy updates
-* Document-grounded answers
-* Safe handling of missing information
-* Audit trails
-* Dynamic policy updates
-
-### Authority Model
-
-#### MCP-Style
-
-```text
-User
- │
- ▼
-UI
- │
- ▼
-Application Logic
- │
- ▼
-Retrieval / Update
-```
-
-#### MCP-Native
-
-```text
-User
- │
- ▼
-Agent
- │
- ▼
-Authorized Tool
- │
- ▼
-Context / Vector Store
-```
-
-The key difference is where authorization is enforced.
-
-In the MCP-Native implementation, authorization happens inside tools such as:
-
-```text
-retrieve_policy_context
-update_policy_context
-```
-
-rather than relying exclusively on the interface.
-
-### Key Capabilities
-
-* Conversational policy Q&A
-* PDF / DOCX / TXT ingestion
-* Semantic chunking
-* SentenceTransformer embeddings
-* Local DeepSeek-R1 32B inference
-* OpenAI fallback
-* MCP-native tool server
-* Role-based tool authorization
-* Admin write permissions
-* User read permissions
-* Unknown identity denial
-* Persistent vector storage
-* Full audit logging
-* Gradio interface
-
-### Authorization Flow
-
-```text
-User
- │
- ▼
-Identity / Role
- │
- ├── Unknown ──────────────► DENY
- │
- ├── User ─────────────────► READ
- │
- └── Admin ────────────────► READ + WRITE
-```
-
-### Secure Policy Update
-
-```text
-Admin
- │
- ▼
-update_policy_context
- │
- ▼
-Role Verification
- │
- ├── Unauthorized → BLOCK
- │
- └── Authorized
-        │
-        ▼
-    Vector Store
-        │
-        ▼
-   Updated Policy
-```
-
-### Audit Trail
-
-Every tool invocation records information including:
-
-* User identity
-* User role
-* Tool invoked
-* Success / blocked status
-* Retrieved information
-* Unauthorized attempts
-* Timestamps
-
-### Technology Stack
-
-| Component        | Technology                             |
-| ---------------- | -------------------------------------- |
-| Language         | Python 3.10                            |
-| UI               | Gradio                                 |
-| LLM              | Ollama, DeepSeek-R1 32B                |
-| Fallback         | OpenAI API                             |
-| Vector Store     | ChromaDB, Pinecone, InMemory           |
-| Embeddings       | sentence-transformers/all-MiniLM-L6-v2 |
-| Authorization    | Custom email-based RBAC                |
-| Document Parsing | PyPDF2, python-docx                    |
-| Deployment       | Docker, Docker Compose                 |
-| Infrastructure   | Google Cloud GPU VM                    |
-
-### Demonstrated Execution
-
-The MCP-Native system demonstrates:
-
-1. Normal user policy query
-2. Authorized admin policy injection
-3. Retrieval after dynamic policy update
-4. Unauthorized policy update attempt
-5. Tool-level authorization failure
-6. Complete audit trail
-
-The dynamic update test demonstrates that a newly inserted policy clause becomes available through the retrieval system without restarting the application.
-
-### Engineering Challenges
-
-#### Challenge 1 — Silent Retrieval Failures
-
-Initial 256-token chunks caused important sections to be split across chunks.
-
-**Solution:**
-
-* Increased chunk size to 1200 tokens
-* Added 100-token overlap
-* Improved retrieval recall
-
-#### Challenge 2 — Similarity Threshold
-
-A 0.45 similarity threshold rejected relevant but semantically different queries.
-
-**Solution:**
-
-The threshold was reduced to 0.2, allowing relevant clauses with lower cosine similarity to be retrieved.
-
-#### Challenge 3 — Embedding Output Format
-
-The embedding engine inconsistently returned NumPy arrays and lists.
-
-**Solution:**
-
-The encoder was standardized to always return a Python list.
-
-#### Challenge 4 — Docker Networking
-
-The container could not access Ollama through localhost.
-
-**Solution:**
-
-The Docker bridge IP was used to connect the container to host Ollama.
-
-### Limitations
-
-* No cross-encoder reranking
-* Retrieval relies on cosine similarity
-* No persistent conversation memory across container restarts
-* Ollama or OpenAI fallback is required
-* Chunk size remains a recall/precision trade-off
-
-### Quick Start
-
-```bash
-cp .env.example .env
-```
-
-Configure:
-
-```env
-ADMIN_EMAIL=
-USER_EMAIL=
-OLLAMA_URL=
-```
-
-Start:
-
-```bash
-docker compose up -d --build
-```
-
-Open:
-
-```text
-http://<host>:7860
-```
-
----
-
-# 04 — Magnetar Webstack
-
-## Self-Hosted AI Assistant + RAG + Multi-Agent Legal Compliance Audit
-
-Magnetar Webstack is a self-hosted, security-hardened AI platform combining:
-
-* Conversational AI
-* Document-grounded RAG
-* Prompt-injection protection
-* PII redaction
-* API authentication
-* Rate limiting
-* Redis caching
-* Distributed tracing
-* Prometheus metrics
-* Multi-agent legal compliance auditing
-
-It is designed as a complete AI application rather than a simple chatbot wrapper.
-
-### Core Pipeline
-
-```text
-                         User
-                          │
-                          ▼
-                React Frontend
-                          │
-                          ▼
-                Nginx Reverse Proxy
-                          │
-                          ▼
-                   FastAPI Backend
-                          │
-          ┌───────────────┼────────────────┐
-          │               │                │
-          ▼               ▼                ▼
-       Redis            Qdrant           Ollama
-   Cache / Queue     Vector Store      Local LLM
-                          │
-                          ▼
-                         RAG
-                          │
-                          ▼
-                 Multi-Agent Audit
-                          │
-                          ▼
-                   PDF Compliance
-                      Report
-```
-
-### Security Architecture
-
-```text
-User Request
-     │
-     ▼
-DeBERTa-v3 Prompt Guard
-     │
-     ├── Malicious → BLOCK
-     │
-     └── Allowed
-            │
-            ▼
-        AI / RAG
-            │
-            ▼
-      Local DeepSeek-R1
-            │
-            ▼
-      Presidio PII Scan
-            │
-            ▼
-         Response
-```
-
-### Core Capabilities
-
-#### Conversational AI
-
-Local DeepSeek-R1 32B provides reasoning-based conversational responses.
-
-#### Document RAG
-
-Supported document types include:
-
-* PDF
-* DOCX
-* TXT
-* Markdown
-
-Documents are embedded and indexed in Qdrant.
-
-#### Legal Compliance Audit
-
-The system implements a reflexion-based multi-agent workflow:
-
-```text
-Junior Auditor
-      │
-      ▼
-Reflector
-      │
-      ▼
-Researcher
-      │
-      ▼
-Revisor
-      │
-      ▼
-Compliance Report
-```
-
-The workflow audits contracts against:
-
-* GDPR
-* EU AI Act
-
-The resulting PDF contains:
-
-* Executive summary
-* Compliance score
-* Flagged clauses
-* Supporting analysis
-
-### Security Controls
-
-* DeBERTa-v3 input guard
-* Prompt-injection detection
-* Microsoft Presidio output protection
-* PII redaction
-* API-key authentication
-* Rate limiting
-* Defense in depth
-* Secret protection
-
-### Deterministic Behavior
-
-The system is designed for reproducibility through:
-
-* Fixed model configuration
-* Deterministic cache keys
-* Redis caching
-* Consistent RAG retrieval
-
-### Technology Stack
-
-| Component       | Technology                             |
-| --------------- | -------------------------------------- |
-| Language        | Python 3.10, TypeScript                |
-| Backend         | FastAPI, Uvicorn                       |
-| Frontend        | React, Vite, Tailwind CSS              |
-| LLM             | Ollama, DeepSeek-R1 32B                |
-| Vector DB       | Qdrant                                 |
-| Embeddings      | sentence-transformers/all-MiniLM-L6-v2 |
-| Input Guard     | DeBERTa-v3                             |
-| Output Guard    | Microsoft Presidio                     |
-| Cache           | Redis                                  |
-| Tracing         | OpenTelemetry, Jaeger                  |
-| Metrics         | Prometheus                             |
-| Agent Workflow  | LangChain, LangGraph                   |
-| Optional Search | Tavily                                 |
-| Deployment      | Docker Compose                         |
-| Infrastructure  | Google Cloud VM                        |
-
-### Adversarial Conditions
-
-The system was designed and tested against:
-
-* Prompt-injection attempts
-* Jailbreak-style requests
-* Attempts to extract environment variables
-* Attempts to extract secrets
-* Documents containing sensitive information
-
-PII is automatically redacted from generated output.
-
-### Engineering Challenges
-
-#### Challenge 1 — Dependency Conflicts
-
-Conflicts occurred between packages including:
-
-* spaCy
-* Pydantic
-* LangChain
-* HTTPX
-
-**Solution:**
-
-* Updated pip
-* Relaxed dependency bounds
-* Locked a compatible package set
-
-#### Challenge 2 — Docker → Host Ollama Networking
-
-Containers could not access Ollama through localhost.
-
-**Solution:**
-
-The Docker bridge IP was used to connect containers to host Ollama.
-
-#### Challenge 3 — Missing spaCy Model
-
-Presidio failed because the required `en_core_web_lg` model was absent.
-
-**Solution:**
-
-The model was downloaded during container setup and incorporated into the Docker build.
-
-#### Challenge 4 — Frontend Blank Page
-
-The browser did not provide `crypto.randomUUID()`.
-
-**Solution:**
-
-A compatibility polyfill was added to the React application.
-
-#### Challenge 5 — Nginx Authentication Header
-
-The API key was sent by the frontend but was not forwarded by Nginx.
-
-**Solution:**
-
-The Nginx configuration was updated to forward:
-
-```nginx
-proxy_set_header X-API-Key $http_x_api_key;
-```
-
-#### Challenge 6 — Security Edge Case
-
-A Base64-encoded secret was not blocked by the input detector.
-
-The model nevertheless refused to return the secret.
-
-This demonstrated a second security layer:
-
-```text
-Input Guard
+User request
      ↓
-Allowed
+Agent / application
      ↓
-LLM Safety Behavior
-     ↓
-Secret Not Returned
+Authorized tool boundary
+     ├─ retrieval tool → policy context
+     └─ update tool → role check → policy store
+                             ↓
+                       audit event
 ```
 
-### Limitations
+**Key capabilities**
 
-* No live browsing for normal AI/RAG queries
-* Legal audit requires Tavily for the web-research stage
-* Large models may require quantization on T4/L4 GPUs
-* Legal analysis is informational and not a substitute for human legal advice
-* Demonstration screenshots represent real executions on a GCP GPU VM
+- PDF, DOCX, and TXT policy-document ingestion.
+- Document-grounded policy question-answering.
+- Configured identity mapping to `ADMIN`, `USER`, or `UNKNOWN` roles.
+- Tool-level authorization for policy updates.
+- Audit records for identity, role, operation, outcome, details, and timestamp.
+- ChromaDB by default, with optional Pinecone or in-memory storage paths.
+- Ollama inference with an optional OpenAI API fallback.
+- Gradio interface and Docker Compose support.
 
-### Quick Start
+**Technology:** Python, Gradio, semantic embeddings, ChromaDB, optional Pinecone, Ollama, optional OpenAI API, and tool-oriented agent orchestration.
 
-```bash
-cp .env.example .env
-```
+**Demonstration:** [View an MCP control-lab screenshot](./03-mcp-agentic-control-lab/mcp1.png).
 
-Configure:
+**Important scope note:** The current project README states that the checked-in runnable application focuses on the agent → tool → context pattern. Although the project framing discusses MCP-style and MCP-native control as comparison points, this folder does **not** currently contain a distinct, separately runnable MCP-Style implementation. It is also an engineering experiment, not a drop-in identity provider.
 
-```env
-API_KEY=
-TAVILY_API_KEY=
-```
-
-Download models:
-
-```bash
-python scripts/download_models.py
-```
-
-Build frontend:
-
-```bash
-cd frontend
-npm install
-npm run build
-cd ..
-```
-
-Start:
-
-```bash
-docker compose up -d --build
-```
-
-Verify:
-
-```bash
-curl -H "X-API-Key: your-api-key" http://localhost:8000/health
-```
-
-Open:
-
-```text
-http://<your-vm-ip>
-```
+**Run it:** See the [MCP Agentic Control Lab README](./03-mcp-agentic-control-lab/README.md) for configuration, supported execution modes, and setup details.
 
 ---
 
-# 05 — Magnetar EXE Builder
+## 04 — Magnetar Webstack
 
-## AI-Powered Windows Application Generator with ReAct Agent, Open-Source LLM & GitHub Actions
+**Self-hosted conversational AI, document RAG, and multi-agent contract review.**
 
-Magnetar EXE Builder converts natural-language application requirements into compiled native Windows executables.
+Magnetar Webstack brings together a web interface, a FastAPI backend, local model inference, document retrieval, output privacy controls, operational telemetry, and a multi-stage contract-audit workflow.
 
-The system uses a local **Qwen2.5 32B** model through Ollama to generate Python source code, validate it, push the generated project to GitHub, trigger a Windows GitHub Actions runner, and automatically retrieve the resulting executable.
-
-### Complete AI-to-Production Pipeline
+**Core workflows**
 
 ```text
-Natural Language Prompt
-          │
-          ▼
-      ReAct Agent
-          │
-          ▼
-    Qwen2.5 32B
-          │
-          ▼
- Generated Python Code
-          │
-          ▼
-     py_compile
-          │
-     ┌────┴────┐
-     │         │
-   Failure   Success
-     │         │
-     ▼         ▼
-Patch Round  GitHub
-     │         │
-     └────┬────┘
-          ▼
-    GitHub Actions
-          │
-          ▼
-  Windows Runner
-          │
-          ▼
-      PyInstaller
-          │
-          ▼
-     Windows .exe
-          │
-          ▼
-     Auto Download
+Chat question ─────────────────────→ local LLM → response
+
+Document upload → parsing → embeddings → Qdrant
+Question → retrieval from indexed context → local LLM → response
+
+Contract → Junior Auditor → Reflector → Researcher → Revisor → PDF report
 ```
 
-### Key Features
+**Key capabilities described by the project**
 
-* ReAct agent
-* Qwen2.5 32B local inference
-* Tool-based code generation
-* `src/main.py` generation
-* `requirements.txt` generation
-* Automatic `py_compile` sanity checks
-* Intelligent patch rounds
-* GitHub Actions Windows compilation
-* WebSocket live logs
-* Automatic artifact retrieval
-* One-click build interface
+- Conversational AI with Ollama-based inference.
+- Document question-answering for PDF, DOCX, TXT, and Markdown files.
+- Qdrant-backed vector retrieval.
+- LangGraph-based, four-stage contract review.
+- Report generation with an executive summary, compliance score, flagged clauses, and analysis.
+- Prompt-injection guard, PII filtering/redaction, API-key authentication, and rate limiting.
+- Redis, OpenTelemetry, Jaeger, and Prometheus integration points.
 
-### Generated Applications
+**Technology:** Python, FastAPI, React, TypeScript, Ollama, Qdrant, Redis, LangChain/LangGraph, Microsoft Presidio, OpenTelemetry, Jaeger, and Prometheus. Tavily is used for the legal-audit web-research stage when configured.
 
-Demonstrated generated applications include:
+**Demonstration:** [View a Magnetar Webstack screenshot](./04-magnetar-webstack/mws1.png).
 
-* Snake game
-* Web browsers
-* PDF tools
-* Other applications generated from short natural-language requirements
+**Known repository blocker:** The current project README reports that `app/models/schemas.py` is missing from the checked-in tree even though routers and utility modules import it. That prevents a clean checkout from importing successfully until the module is restored. Treat setup/API documentation as a description of the intended configuration, not as proof that a fresh end-to-end deployment currently works.
 
-### Technology Stack
+**Limitations:** Normal chat/RAG requests do not provide live browsing; the legal audit uses a web-research stage when Tavily is configured. Audit output is informational and does not replace review by a qualified legal professional. Large models may require quantization depending on available GPU memory.
 
-| Component       | Technology              |
-| --------------- | ----------------------- |
-| Language        | Python 3.10, JavaScript |
-| Backend         | FastAPI, Uvicorn        |
-| Frontend        | React, Vite             |
-| AI Inference    | Ollama, Qwen2.5 32B     |
-| Agent Framework | LangChain, LangGraph    |
-| Windows Build   | PyInstaller             |
-| CI/CD           | GitHub Actions          |
-| Containers      | Docker, Docker Compose  |
-| Infrastructure  | Google Cloud GPU VM     |
-| GPU             | NVIDIA L4               |
-
-### Architecture
-
-```text
-┌─────────────────┐
-│   User Prompt   │
-│    Web UI       │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   ReAct Agent   │
-│     Ollama      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Code + Sanity   │
-│     Check       │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────┐
-│    GitHub Actions       │
-│    Windows Runner       │
-└───────────┬─────────────┘
-            │
-            ▼
-┌─────────────────────────┐
-│     Windows .exe        │
-│       Download          │
-└─────────────────────────┘
-```
-
-### Demonstrated End-to-End Execution
-
-The system was demonstrated by generating a functional Snake game.
-
-The execution flow included:
-
-1. User enters application requirements
-2. ReAct agent generates source files
-3. Code passes sanity checking
-4. Generated code is pushed to GitHub
-5. GitHub Actions Windows runner builds the application
-6. Executable is retrieved
-7. User downloads and runs the native Windows application
-
-### Engineering Challenges
-
-#### Challenge 1 — Cross-Platform Build Limitations
-
-A Linux Docker container cannot produce a genuine Windows executable using PyInstaller.
-
-**Solution:**
-
-The build stage was moved to a GitHub Actions `windows-latest` runner.
-
-```text
-Linux / GPU VM
-      │
-      ▼
-Generated Code
-      │
-      ▼
-GitHub
-      │
-      ▼
-Windows Runner
-      │
-      ▼
-Native .exe
-```
-
-#### Challenge 2 — Model Tool-Calling Compatibility
-
-The specialized `qwen2.5-coder:32b` model did not provide the required native tool-calling behavior through Ollama.
-
-This caused the agent to announce completion without actually creating files.
-
-**Solution:**
-
-The system switched to the base:
-
-```text
-qwen2.5:32b
-```
-
-which reliably invoked the required file-writing and reading tools.
-
-#### Challenge 3 — Docker Cache
-
-Docker caching caused changes to the build engine to be ignored.
-
-The old local PyInstaller workflow continued to execute.
-
-**Solution:**
-
-A clean rebuild was performed using:
-
-```bash
-docker compose build --no-cache
-```
-
-Additional measures included:
-
-* `docker cp` for container-side file replacement
-* Installing Git inside the backend container
-
-#### Challenge 4 — Missing Destination Directory
-
-`shutil.copy()` failed because the destination `src/` directory did not exist.
-
-**Solution:**
-
-The destination directory is created explicitly:
-
-```python
-os.makedirs(os.path.dirname(dst), exist_ok=True)
-```
-
-#### Challenge 5 — GitHub Workflow Dispatch
-
-GitHub rejected a workflow dispatch request with HTTP 422 because the required branch input was missing.
-
-Incorrect:
-
-```json
-{
-  "ref": "main"
-}
-```
-
-Correct:
-
-```json
-{
-  "ref": "main",
-  "inputs": {
-    "branch": "main"
-  }
-}
-```
-
-#### Challenge 6 — Nginx Proxy Configuration
-
-Nginx repeatedly reverted to its default configuration after container rebuilds.
-
-This removed the required `/api/` and `/ws/` proxy rules.
-
-**Solution:**
-
-The custom `nginx.conf` was mounted through Docker Compose so the configuration survives rebuilds.
-
-### Limitations
-
-* Windows build time depends on GitHub Actions queue availability
-* Typical build time is approximately 2–5 minutes
-* GitHub Actions requires an appropriate Personal Access Token
-* Native Windows compilation cannot be performed locally inside the Linux container
-* Generated executables are unsigned and may trigger Windows SmartScreen
-* Output quality depends on the Qwen2.5 32B model
-* Demonstration screenshots represent actual executions
-
-### Quick Start
-
-```bash
-git clone https://github.com/shubham-61291/magnetar-exe-builder.git
-cd magnetar-exe-builder
-```
-
-Configure:
-
-```env
-OLLAMA_BASE_URL=http://172.17.0.1:11434
-OLLAMA_MODEL=qwen2.5:32b
-GITHUB_TOKEN=<your-github-token>
-```
-
-Start:
-
-```bash
-docker compose up -d --build
-```
-
-Open:
-
-```text
-http://<your-vm-ip>:3000
-```
-
-Enter an application description and select **Build EXE**.
-
-Example:
-
-```text
-Create a Snake game with arrow key controls, score display,
-collision detection, restart functionality, and retro styling.
-```
+**Run it:** Review the [Magnetar Webstack README](./04-magnetar-webstack/README.md), especially its repository-state caveat, configuration, validation, and security notes.
 
 ---
 
-# Cross-System Security Architecture
+## 05 — Magnetar EXE Builder
 
-Security is implemented differently depending on the problem being solved.
+**Natural-language application generation with agent-driven coding and executable packaging.**
 
-| Security Requirement       | Aetheris | Magnetar AI | MCP Lab | Webstack | EXE Builder |
-| -------------------------- | -------: | ----------: | ------: | -------: | ----------: |
-| Prompt Injection Detection |        ✓ |           ✓ |       — |        ✓ |           — |
-| Output Protection          |        ✓ |           ✓ |       — |        ✓ |           — |
-| API Authentication         |        — |           ✓ |       — |        ✓ |           — |
-| RBAC                       |        — |           — |       ✓ |        — |           — |
-| Tool-Level Authorization   |        — |           — |       ✓ |        — |           — |
-| Rate Limiting              |        ✓ |           ✓ |       — |        ✓ |           — |
-| Audit Logging              |        — |           ✓ |       ✓ |        ✓ |           ✓ |
-| Local LLM                  |        ✓ |           ✓ |       ✓ |        ✓ |           ✓ |
-| GPU Inference              |        ✓ |           ✓ |       ✓ |        ✓ |           ✓ |
-| Docker Deployment          |        ✓ |           ✓ |       ✓ |        ✓ |           ✓ |
-| GCP Infrastructure         |        ✓ |           ✓ |       ✓ |        ✓ |           ✓ |
+Magnetar EXE Builder accepts a plain-language application description, generates a Python project through an LLM-backed coding agent, checks generated source, and presents build state through a web interface with live telemetry. The portfolio's demonstrated design delegates native Windows packaging to a Windows GitHub Actions runner instead of attempting to produce a Windows binary from a Linux container.
 
----
-
-# Cross-System AI Stack
+**Intended end-to-end flow**
 
 ```text
-                    AI APPLICATIONS
-                           │
-          ┌────────────────┼────────────────┐
-          │                │                │
-          ▼                ▼                ▼
-       Agents             RAG            Generation
-          │                │                │
-          └────────────────┼────────────────┘
-                           │
-                           ▼
-                    Local LLM Runtime
-                           │
-                        Ollama
-                           │
-             ┌─────────────┼─────────────┐
-             │             │             │
-             ▼             ▼             ▼
-        Qwen2.5 32B   Qwen2.5-Coder   DeepSeek-R1
-             │             │             │
-             └─────────────┼─────────────┘
-                           │
-                           ▼
-                     GPU Infrastructure
-                           │
-                     Google Cloud VM
+Natural-language requirements
+             ↓
+       ReAct coding agent
+             ↓
+  src/main.py + requirements.txt
+             ↓
+       Python syntax check
+         ┌───┴───┐
+       failure success
+          ↓       ↓
+      patch loop  GitHub source/workflow dispatch
+                         ↓
+                 Windows Actions runner
+                         ↓
+                     PyInstaller
+                         ↓
+                  executable artifact
+                         ↓
+                    user download
 ```
 
----
+**Key capabilities described by the project**
 
-# Retrieval Architecture
+- Natural-language application requirements.
+- LLM-assisted generation of Python source and dependencies.
+- Syntax sanity-checking and bounded patch rounds.
+- Build progress and logs through the frontend/WebSocket path.
+- Native Windows packaging through a companion GitHub Actions workflow.
+- Downloadable build artifacts in the demonstrated architecture.
 
-The repository demonstrates multiple retrieval architectures.
+**Technology:** Python, FastAPI, React/Vite, Ollama, agent tooling, PyInstaller, Docker, and GitHub Actions.
 
-## Hybrid Retrieval
+**Demonstration:** [View an EXE Builder screenshot](./05-magnetar-exe-builder/build1.png).
 
-Used by Magnetar AI:
+**Important implementation distinction:** The documented/demo architecture includes pushing generated source to GitHub, dispatching a Windows workflow, and retrieving the resulting artifact. However, the checked-in `05-magnetar-exe-builder` source snapshot currently calls an in-process PyInstaller builder; the remote workflow-dispatch and artifact-retrieval handoff are not wired into that code path. The companion packaging workflow is in [`agentic-exe-builder_1`](https://github.com/shubham-61291/agentic-exe-builder_1). The project README records this distinction.
 
-```text
-             Query
-               │
-       ┌───────┴───────┐
-       ▼               ▼
-    Dense             Sparse
-   Retrieval          BM25
-       │               │
-       └───────┬───────┘
-               ▼
-      Reciprocal Rank Fusion
-               │
-               ▼
-        Relevant Evidence
-```
+**Limitations:** Windows builds depend on runner availability; typical build times described by the project are approximately 2–5 minutes. The companion workflow requires an appropriately scoped GitHub token. Unsigned executables may trigger Windows SmartScreen, and generated application quality depends on the model and validation loop.
 
-## Vector-Based Agentic Retrieval
-
-Used by MCP Agentic Control Lab:
-
-```text
-User
- │
- ▼
-Agent
- │
- ▼
-Authorized Retrieval Tool
- │
- ▼
-Vector Store
- │
- ▼
-Policy Context
- │
- ▼
-DeepSeek-R1
-```
-
-## Qdrant-Based RAG
-
-Used by Magnetar Webstack:
-
-```text
-Documents
-    │
-    ▼
-Embeddings
-    │
-    ▼
-Qdrant
-    │
-    ▼
-Retrieved Context
-    │
-    ▼
-DeepSeek-R1
-```
+**Run it:** Follow the [Magnetar EXE Builder README](./05-magnetar-exe-builder/README.md) for local execution, Docker configuration, API details, build workflow, and known limitations.
 
 ---
 
-# Observability
+# Cross-system capability map
 
-Several systems treat observability as part of the application architecture rather than an external operational concern.
+The matrix below summarizes the capabilities described in the project documentation. A check indicates that the capability is part of the documented system, not a guarantee that every deployment configuration enables it.
 
-The portfolio includes:
-
-* Structured logging
-* WebSocket execution logs
-* Audit trails
-* OpenTelemetry traces
-* Jaeger
-* Prometheus
-* Redis caching
-* Tool invocation records
-* Build execution logs
-* Security-block events
-
-This makes it possible to inspect not only the final answer, but also how the system arrived there.
-
----
-
-# Deployment Model
-
-The projects are designed around containerized, GPU-enabled infrastructure.
-
-A representative deployment looks like:
-
-```text
-                    Google Cloud VM
-                           │
-              ┌────────────┴────────────┐
-              │                         │
-           Docker                    Ollama
-              │                         │
-       ┌──────┼──────┐                  │
-       │      │      │                  ▼
-      API   UI    Services          Local LLM
-       │      │      │                  │
-       └──────┼──────┘                  │
-              │                         │
-              └──────────┬──────────────┘
-                         ▼
-                    AI Application
-```
-
-Ollama is commonly run directly on the host to provide direct GPU access, while application services run inside Docker containers.
+| Capability | Aetheris WebForge | Magnetar AI | MCP Control Lab | Magnetar Webstack | EXE Builder |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Local LLM / Ollama path | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Optional hosted model API | ✓ | — | ✓ | Configuration-dependent | Configuration-dependent |
+| RAG / document retrieval | Optional widget | ✓ | ✓ | ✓ | — |
+| Hybrid dense + keyword retrieval | — | ✓ | — | — | — |
+| Agent/tool workflow | — | — | ✓ | ✓ | ✓ |
+| Multi-agent workflow | — | — | — | ✓ | — |
+| Web application generation | ✓ | — | — | — | — |
+| Native executable packaging | — | — | — | — | ✓ |
+| Role-based authorization | — | — | ✓ | — | — |
+| Prompt-injection / output filtering | Heuristic checks | Guardrails | — | Guard + PII filtering | Not a primary control |
+| API authentication | — | ✓ | — | ✓ | Check project config |
+| Redis caching / state | — | ✓ | — | ✓ | — |
+| Operational telemetry / audit trail | Limited | ✓ | ✓ | ✓ | Build logs |
+| Docker-based deployment | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Google Cloud deployment documented | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Windows GitHub Actions packaging | — | — | — | — | Companion workflow |
 
 ---
 
-# Production Engineering Patterns Demonstrated
+# Shared engineering themes
 
-Across the five systems, the repository demonstrates practical solutions to problems such as:
+## Retrieval and evidence
 
-### Cross-Platform Compilation
+The RAG projects explore different retrieval designs:
 
-Native Windows builds are delegated to Windows infrastructure rather than incorrectly attempting to compile Windows executables inside Linux containers.
+- **Magnetar AI:** dense ChromaDB retrieval combined with BM25 keyword search and rank fusion.
+- **MCP Agentic Control Lab:** tool-mediated retrieval of policy context, with role checks around policy updates.
+- **Magnetar Webstack:** Qdrant-backed document retrieval used in conversational workflows.
 
-### Model Compatibility
+Chunk size, overlap, embeddings, and retrieval thresholds influence quality. Retrieval should be evaluated against the target document corpus rather than assumed to be reliable from architecture alone.
 
-Model selection is based not only on generation quality but also on capabilities such as tool calling.
+## Security and governance
 
-### Retrieval Quality
+Security mechanisms are project-specific. Implemented/documented patterns include heuristic prompt-injection screening, API-key authentication, role checks, tool-level authorization, output PII filtering, rate limiting, secret-handling practices, and audit records. These mechanisms provide defense-in-depth opportunities but are not substitutes for threat modeling, adversarial testing, least-privilege credentials, or human review.
 
-Chunk size, overlap, embedding behavior, and similarity thresholds are treated as engineering parameters rather than fixed defaults.
+## Observability and operations
 
-### Container Networking
+Across the repository, operational visibility is provided through a combination of application logs, tool invocation records, WebSocket build logs, audit events, Redis-backed state or cache, and (for selected systems) OpenTelemetry, Jaeger, and Prometheus integrations.
 
-Host-level GPU inference services are explicitly connected to containerized applications.
+## GPU and container networking
 
-### Security Boundaries
-
-Authorization can be enforced at the tool layer rather than relying entirely on frontend controls.
-
-### Dependency Management
-
-Production deployment requires resolving compatibility between rapidly evolving AI libraries.
-
-### Reverse Proxy Behavior
-
-Nginx configuration is explicitly managed so authentication headers and API/WebSocket routes survive rebuilds.
-
-### Defense in Depth
-
-Security does not rely on one detector. Multiple layers can prevent sensitive information from reaching the final response.
+The projects commonly use Ollama for local inference, with GPU access often provided by a host service while application components run in Docker. Configuration and networking therefore depend on the environment: `localhost` from inside a container refers to the container itself, not automatically to the host machine.
 
 ---
 
-# Demonstration Philosophy
-
-The systems are backed by actual execution evidence.
-
-Examples include:
-
-* Native Windows `.exe` execution
-* Generated web applications
-* Live GCP deployment
-* Document-grounded RAG answers
-* Prompt-injection blocking
-* Dynamic policy updates
-* Unauthorized tool calls
-* Audit logs
-* Legal compliance reports
-* Real Docker deployments
-* Real GPU inference
-
-The objective is to demonstrate working system behavior rather than only present architectural diagrams.
-
----
-
-# Repository Structure
+# Repository layout
 
 ```text
 production-ai-engineering/
-│
 ├── README.md
-│
 ├── 01-aetheris-webforge/
-│   ├── source
-│   ├── Dockerfile
-│   ├── .env.example
-│   └── README.md
-│
-├── 02-magnetar-ai/
+│   ├── app.py
+│   ├── config.py
 │   ├── core/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── test_system.py
+│   └── screenshots (*.png)
+├── 02-magnetar-ai/
+│   ├── app/
 │   ├── frontend/
 │   ├── scripts/
+│   ├── tests/
 │   ├── docker-compose.yml
-│   └── README.md
-│
+│   └── screenshots (*.png)
 ├── 03-mcp-agentic-control-lab/
+│   ├── app.py
 │   ├── core/
 │   ├── mcp_core/
-│   ├── screenshots/
-│   ├── docker-compose.yml
-│   └── README.md
-│
+│   ├── mcp_native.py
+│   └── docker-compose.yml
 ├── 04-magnetar-webstack/
-│   ├── core/
+│   ├── app/
 │   ├── frontend/
 │   ├── scripts/
 │   ├── docker-compose.yml
-│   └── README.md
-│
+│   └── screenshots (*.png)
 └── 05-magnetar-exe-builder/
     ├── backend/
     ├── frontend/
     ├── Dockerfile
     ├── docker-compose.yml
-    └── README.md
+    ├── start.ps1
+    ├── start.sh
+    └── screenshots (*.png)
 ```
 
-Each directory remains a **standalone application**.
+Each project has its own README with project-specific requirements, environment variables, commands, API details, and limitations. The repository is organized as a portfolio, not as a single shared Python environment.
 
-The monorepo provides a unified engineering view without forcing the five systems into one runtime or dependency environment.
+# Getting started
 
----
+## 1. Clone the portfolio
 
-# System Comparison
-
-| Capability               | Aetheris | Magnetar AI | MCP Lab | Webstack | EXE Builder |
-| ------------------------ | :------: | :---------: | :-----: | :------: | :---------: |
-| Local LLM                |     ✓    |      ✓      |    ✓    |     ✓    |      ✓      |
-| GPU Inference            |     ✓    |      ✓      |    ✓    |     ✓    |      ✓      |
-| RAG                      |     —    |      ✓      |    ✓    |     ✓    |      —      |
-| Hybrid Retrieval         |     —    |      ✓      |    —    |     —    |      —      |
-| Document Ingestion       |     —    |      ✓      |    ✓    |     ✓    |      —      |
-| Agentic Workflow         |     —    |      —      |    ✓    |     ✓    |      ✓      |
-| Multi-Agent Workflow     |     —    |      —      |    —    |     ✓    |      —      |
-| Code Generation          |     ✓    |      —      |    —    |     —    |      ✓      |
-| Web Generation           |     ✓    |      —      |    —    |     —    |      —      |
-| Native EXE Generation    |     —    |      —      |    —    |     —    |      ✓      |
-| Prompt Injection Guard   |     ✓    |      ✓      |    —    |     ✓    |      —      |
-| PII Protection           |     —    |      ✓      |    —    |     ✓    |      —      |
-| API Authentication       |     —    |      ✓      |    —    |     ✓    |      —      |
-| RBAC                     |     —    |      —      |    ✓    |     —    |      —      |
-| Tool-Level Authorization |     —    |      —      |    ✓    |     —    |      —      |
-| Redis                    |     —    |      ✓      |    —    |     ✓    |      —      |
-| Observability            |     —    |      ✓      |    ✓    |     ✓    |      ✓      |
-| Docker                   |     ✓    |      ✓      |    ✓    |     ✓    |      ✓      |
-| GCP                      |     ✓    |      ✓      |    ✓    |     ✓    |      ✓      |
-| GitHub Actions           |     —    |      —      |    —    |     —    |      ✓      |
-
----
-
-# Engineering Scope
-
-This repository covers multiple layers of modern AI engineering.
-
-## AI & LLM Engineering
-
-* Local LLM inference
-* GPU acceleration
-* Qwen2.5
-* Qwen2.5-Coder
-* DeepSeek-R1
-* Ollama
-* ReAct agents
-* LangChain
-* LangGraph
-* Tool calling
-* Multi-agent workflows
-
-## Retrieval & Knowledge Systems
-
-* Document parsing
-* Chunking
-* Embeddings
-* Dense retrieval
-* BM25
-* Hybrid retrieval
-* Reciprocal Rank Fusion
-* ChromaDB
-* Qdrant
-* Pinecone
-* In-memory retrieval
-* Evidence-grounded generation
-
-## AI Security
-
-* Prompt-injection detection
-* DeBERTa-v3
-* Presidio
-* PII redaction
-* API-key authentication
-* RBAC
-* Tool-level authorization
-* Rate limiting
-* Defense in depth
-* Secret protection
-
-## Infrastructure
-
-* Docker
-* Docker Compose
-* Nginx
-* Redis
-* Google Cloud GPU VMs
-* Google Cloud Storage
-* GitHub Actions
-* Windows runners
-* PyInstaller
-* Ollama
-
-## Observability
-
-* Structured logs
-* Audit trails
-* OpenTelemetry
-* Jaeger
-* Prometheus
-* WebSocket execution logs
-* Build logs
-* Tool invocation logs
-
----
-
-# Known Limitations
-
-These systems are production-oriented engineering artifacts, but each has explicit technical limitations.
-
-### Aetheris WebForge
-
-* Deployment requires appropriate GCP Storage permissions
-* Generated applications depend on LLM output quality
-* Public website deployment requires appropriate bucket configuration
-
-### Magnetar AI
-
-* No cross-encoder reranking
-* Retrieval depends on cosine similarity and BM25
-* Ollama is required for local inference
-* DOCX table extraction is incomplete
-* Chunk size affects retrieval precision and recall
-
-### MCP Agentic Control Lab
-
-* No cross-encoder reranking
-* No persistent conversation memory across restarts
-* Requires Ollama or OpenAI fallback
-* Retrieval quality depends on chunking and similarity thresholds
-
-### Magnetar Webstack
-
-* Legal audit requires Tavily for its web-research stage
-* Large models may require quantization on T4/L4 hardware
-* Legal audit output is informational and not a replacement for legal advice
-* Normal AI/RAG queries do not provide live browsing
-
-### Magnetar EXE Builder
-
-* Windows builds depend on GitHub Actions availability
-* Builds generally take approximately 2–5 minutes
-* A GitHub Personal Access Token is required
-* Windows executables cannot be compiled natively inside the Linux container
-* Generated executables are unsigned and may trigger SmartScreen
-* Output quality depends on Qwen2.5 32B
-
----
-
-# What Makes These Production-Grade Systems?
-
-The focus is not simply model selection.
-
-The engineering work covers the surrounding system required to make AI functionality operational:
-
-```text
-                MODEL
-                  │
-                  ▼
-             ORCHESTRATION
-                  │
-                  ▼
-          RETRIEVAL / TOOLS
-                  │
-                  ▼
-             VALIDATION
-                  │
-                  ▼
-              SECURITY
-                  │
-                  ▼
-           AUTHORIZATION
-                  │
-                  ▼
-           OBSERVABILITY
-                  │
-                  ▼
-            DEPLOYMENT
-                  │
-                  ▼
-             OPERATIONS
+```bash
+git clone https://github.com/shubham-61291/production-ai-engineering.git
+cd production-ai-engineering
 ```
 
-The systems explicitly address:
+## 2. Choose a system
 
-* How models interact with tools
-* How documents become retrievable evidence
-* How authority is enforced
-* How malicious input is handled
-* How sensitive output is protected
-* How containers communicate with host GPU services
-* How generated software is compiled
-* How cloud deployment is performed
-* How execution is observed
-* How failures are diagnosed
-* How limitations are exposed
+Open the README for the project you plan to run. Each guide has the best available instructions for that project's model configuration, environment variables, ports, and deployment mode:
 
-The repository therefore focuses on **AI systems engineering**, not merely AI model usage.
+- [Aetheris WebForge](./01-aetheris-webforge/README.md)
+- [Magnetar AI](./02-magnetar-ai/README.md)
+- [MCP Agentic Control Lab](./03-mcp-agentic-control-lab/README.md)
+- [Magnetar Webstack](./04-magnetar-webstack/README.md)
+- [Magnetar EXE Builder](./05-magnetar-exe-builder/README.md)
+
+## 3. Prepare runtime dependencies
+
+Depending on the system and selected inference provider, you may need Python, Node.js, Docker, Docker Compose, a running Ollama service with the required model downloaded, Google Cloud permissions, or a GitHub token for the Windows build workflow. Consult the project README before starting containers or exposing a service on a network.
+
+> **Recommended first-run practice:** Start locally, use test documents and non-sensitive prompts, verify the configured model endpoint, and run the project's documented tests before deploying to a VM or publishing generated artifacts.
 
 ---
+
+# Known limitations and repository-state notes
+
+The following items are intentionally surfaced here because they affect how the portfolio should be evaluated and reproduced.
+
+| Project | Current caveat |
+|---|---|
+| Aetheris WebForge | Described in its project README as a demonstration/MVP. Generated content needs review; GCS deployment depends on correct permissions and bucket configuration. |
+| Magnetar AI | No cross-encoder reranker; DOCX table extraction is incomplete; retrieval and generation can produce omissions or errors. |
+| MCP Agentic Control Lab | Current folder focuses on the agent → tool → context implementation; a distinct, separately runnable MCP-Style comparison implementation is not present in the checked-in tree. |
+| Magnetar Webstack | Project README identifies a missing `app/models/schemas.py` import dependency that blocks a clean startup until restored. |
+| Magnetar EXE Builder | Current monorepo code invokes an in-process PyInstaller builder; the documented GitHub Actions dispatch/artifact handoff is not wired into that source path. The companion Windows workflow is in [`agentic-exe-builder_1`](https://github.com/shubham-61291/agentic-exe-builder_1). |
+| Repository licensing | Project READMEs label the projects MIT, but no root-level `LICENSE` file was present in the repository listing inspected for this revision. Confirm and add the intended license file before redistributing the monorepo. |
+
+These notes describe the repository snapshot reviewed for this README. Re-check the source and rerun tests before relying on the implementation after future changes.
+
+# Contributing and validation
+
+Contributions should remain scoped to an individual project unless a change genuinely affects shared documentation or conventions. Before submitting a change:
+
+1. Follow the selected project's setup instructions.
+2. Run the tests or verification commands provided by that project.
+3. Update its README when configuration, architecture, endpoints, dependencies, or limitations change.
+4. Avoid documenting a feature as end-to-end functional unless the corresponding path has been verified in the checked-in source.
+5. Keep secrets, access tokens, and private environment files out of commits.
 
 # Author
 
 **Shubham Singh**
 
----
+GitHub: [@shubham-61291](https://github.com/shubham-61291)
 
 # License
 
-MIT License
+The individual project READMEs currently state MIT licensing. The repository root did not include a `LICENSE` file in the tree inspected for this update; add or confirm the appropriate root-level license before treating the entire monorepo as licensed for redistribution.
