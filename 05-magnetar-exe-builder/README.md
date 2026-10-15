@@ -27,7 +27,8 @@ Magnetar EXE Builder accepts an application's requirements in plain English, use
 - [Configuration](#configuration)
 - [Engineering challenges and decisions](#engineering-challenges-and-decisions)
 - [Limitations and security](#limitations-and-security)
-- [Author and license](#author-and-license)
+- [Author](#author)
+- [License](#license)
 
 ## At a glance
 
@@ -415,15 +416,37 @@ The broader deployment notes describe Nginx configuration reverting to its defau
 - **Credential handling:** use narrowly scoped GitHub credentials and store them as secrets. A token used for workflow dispatch, repository writes, or artifact downloads must have only the permissions that workflow actually needs.
 - **External model providers:** when the OpenAI provider is selected, prompts and generation context are sent to that provider. Do not submit confidential content unless that disclosure is intended.
 - **Repository hygiene:** generated frontend assets, dependency folders, and Python bytecode appear in the repository tree; avoid committing generated dependencies and caches in a cleaned-up distribution.
-- **License notice:** the project README in this folder did not include a `LICENSE` file in the inspected tree. Add the full license text before relying on an MIT license declaration for redistribution.
+- **License file:** The MIT terms are included at the end of this README. For standard repository-level license detection, keep a root-level `LICENSE` file containing the same text.
 
-## Author and license
+## Author
 
 **Shubham Kumar Singh**
 
 - GitHub: [@shubham-61291](https://github.com/shubham-61291)
 - Monorepo: [`production-ai-engineering`](https://github.com/shubham-61291/production-ai-engineering)
-- This project: [`05-magnetar-exe-builder`](https://github.com/shubham-61291/production-ai-engineering/tree/main/05-magnetar-exe-builder)
+- Project: [`05-magnetar-exe-builder`](https://github.com/shubham-61291/production-ai-engineering/tree/main/05-magnetar-exe-builder)
 - Companion Windows workflow: [`agentic-exe-builder_1`](https://github.com/shubham-61291/agentic-exe-builder_1)
 
-The project README has historically described the project as MIT-licensed, but a `LICENSE` file was not present in the project folder during inspection. Add the complete MIT license text to the repository if MIT is the intended license.
+## License
+
+This project is licensed under the MIT License.
+
+Copyright (c) 2026 Shubham Kumar Singh
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
