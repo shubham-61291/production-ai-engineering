@@ -1,142 +1,178 @@
 # Magnetar EXE Builder
 
-**AI-assisted application generation with a ReAct coding agent, live build telemetry, and Windows executable packaging.**
+**Natural-language application generation with a ReAct coding agent, live build telemetry, and native Windows packaging through GitHub Actions.**
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
-[![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB.svg)](https://vitejs.dev/)
-[![Build target](https://img.shields.io/badge/Build-Windows%20EXE-0078D4.svg)](https://github.com/shubham-61291/agentic-exe-builder_1)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/UI-React%20%2B%20Vite-61DAFB.svg)](https://vitejs.dev/)
+[![Packaging](https://img.shields.io/badge/Packaging-PyInstaller-3776AB.svg)](https://pyinstaller.org/)
+[![Windows CI](https://img.shields.io/badge/Windows%20build-GitHub%20Actions-2088FF.svg)](https://github.com/shubham-61291/agentic-exe-builder_1/actions)
 
-Magnetar EXE Builder turns a plain-language application specification into Python source code and a dependency list. A ReAct-style agent writes files into an isolated per-run workspace, performs a Python syntax check, and attempts bounded repairs when the check fails. The generated project can then be packaged as an executable.
+Magnetar EXE Builder accepts an application's requirements in plain English, uses an LLM-backed coding agent to produce a Python project, checks the generated source, and packages the result as an executable. The demonstrated end-to-end design delegates native Windows packaging to a GitHub Actions runner rather than attempting to produce a Windows binary inside a Linux container.
 
-The project has used a **GitHub Actions Windows build workflow** hosted in a separate repository. The current `05-magnetar-exe-builder` source snapshot also contains an in-process PyInstaller builder. These are distinct build paths and are documented separately below so the setup and platform limitations remain clear.
-
-> **Project boundary:** This is an AI-assisted MVP, not a general-purpose software engineer. `py_compile` checks Python syntax; it does not prove runtime correctness, UI behavior, dependency compatibility, or security. Review generated source and dependencies before running them.
+> **Implementation-status note:** The portfolio's documented end-to-end flow includes pushing generated source to GitHub, dispatching a Windows workflow, and retrieving its artifact. In the currently checked-in `05-magnetar-exe-builder` source snapshot, `ReActExeAgent.run_pipeline()` calls an in-process PyInstaller builder; the remote GitHub dispatch and artifact-retrieval handoff are not wired into that path. The companion Windows workflow exists in [`agentic-exe-builder_1`](https://github.com/shubham-61291/agentic-exe-builder_1). This README documents both the demonstrated architecture and the checked-in implementation so the two are not confused.
 
 ## Contents
 
 - [At a glance](#at-a-glance)
 - [Capabilities](#capabilities)
-- [Architecture](#architecture)
-- [Build paths: local and GitHub Actions](#build-paths-local-and-github-actions)
+- [Architecture and build lifecycle](#architecture-and-build-lifecycle)
+- [Windows packaging workflow](#windows-packaging-workflow)
 - [Technology stack](#technology-stack)
 - [Screenshots](#screenshots)
-- [Repository layout](#repository-layout)
+- [Repository structure](#repository-structure)
 - [Run locally](#run-locally)
 - [Docker Compose](#docker-compose)
 - [API reference](#api-reference)
 - [Configuration](#configuration)
-- [Validation and limitations](#validation-and-limitations)
-- [Security notes](#security-notes)
-- [Author](#author)
-- [License](#license)
+- [Engineering challenges and decisions](#engineering-challenges-and-decisions)
+- [Limitations and security](#limitations-and-security)
+- [Author and license](#author-and-license)
 
 ## At a glance
 
-| Capability | Implementation |
+| Area | Implementation |
 |---|---|
-| Input | Plain-English application requirements |
-| Code generation | ReAct-style agent with file-writing and file-reading tools |
-| Default model | `qwen2.5-coder:32b` through Ollama |
-| Optional model provider | OpenAI-compatible chat models, including `gpt-4o-mini` by default when selected |
-| Generated files | `src/main.py` and `requirements.txt` per run |
-| Pre-build check | `python -m py_compile src/main.py` |
-| Repair behavior | Up to four patch rounds by default |
-| Live updates | WebSocket messages for status, logs, and generated source previews |
-| In-process packaging | PyInstaller runs in the backend's operating-system environment |
-| Windows packaging workflow | Companion repository with a `windows-latest` GitHub Actions workflow and `windows-exe` artifact |
-| Interface | React, Vite, Tailwind CSS, and FastAPI |
+| User input | Plain-language application requirements |
+| Frontend | React, Vite, Tailwind CSS |
+| Backend | FastAPI and Uvicorn |
+| Agent | ReAct-style coding agent with file read/write tools |
+| Model runtime | Ollama; optional OpenAI provider |
+| Generated project | `src/main.py` and `requirements.txt` per run |
+| Sanity check | `python -m py_compile src/main.py` |
+| Repair loop | Bounded patch attempts after syntax-check failures |
+| Live updates | WebSocket build status, logs, and source previews |
+| Windows packaging | GitHub Actions `windows-latest` runner with PyInstaller in the companion workflow |
+| Companion build repository | [`shubham-61291/agentic-exe-builder_1`](https://github.com/shubham-61291/agentic-exe-builder_1) |
+| Main repository folder | [`production-ai-engineering/05-magnetar-exe-builder`](https://github.com/shubham-61291/production-ai-engineering/tree/main/05-magnetar-exe-builder) |
 
 ## Capabilities
 
-- **Natural-language application generation:** describe the desktop application's purpose, UI, behavior, and expected outputs.
-- **Tool-based code generation:** the agent uses `write_file` and `read_file` tools to create `src/main.py` and `requirements.txt` in the current run workspace.
-- **Syntax gate:** generated Python is checked with `py_compile` before packaging.
-- **Bounded repair loop:** when the syntax check fails, the agent receives the error context and attempts a repair. The default maximum is four patch rounds.
-- **Live build visibility:** the interface receives status and log updates over WebSockets and can display generated source and the dependency list.
-- **Executable download:** once an executable exists in a run's `release` directory, the API exposes it through the download endpoint.
-- **Provider selection:** the UI can select Ollama or OpenAI and configure the model and endpoint.
-- **Run isolation:** each build receives a separate workspace under the configured runs directory.
+- **Natural-language app generation:** describe the application's purpose, interface, behavior, and expected outputs.
+- **Tool-based file generation:** the agent creates source and dependency files in a per-run workspace using file tools.
+- **Syntax validation:** generated Python is checked with `py_compile` before packaging.
+- **Bounded repair rounds:** syntax errors are fed back to the agent for a limited number of repair attempts.
+- **Live build observability:** the interface receives status and log updates over WebSockets and can show generated source and dependencies.
+- **Model/provider settings:** configure the Ollama endpoint and model, or select the supported OpenAI provider.
+- **Build tracking and download:** query a run's state and download a binary when one is available in that run's release directory.
+- **Windows-native packaging design:** the demonstrated remote workflow runs on GitHub's Windows runner and uploads `app.exe` as an artifact.
 
-## Architecture
+The generated output is an application scaffold, not a guarantee of production-ready software. Syntax validation alone does not establish that the program starts correctly, its features work, or its dependencies are safe.
+
+## Architecture and build lifecycle
+
+### Demonstrated end-to-end workflow
 
 ```mermaid
 flowchart TD
-    U[User requirement in React UI] --> API[FastAPI build API]
+    USER[User describes an application] --> UI[React and Vite UI]
+    UI --> API[FastAPI build API]
     API --> AGENT[ReAct coding agent]
-    AGENT --> FILES[src/main.py and requirements.txt]
-    FILES --> CHECK{Python syntax check}
-    CHECK -->|Pass| LOCAL[In-process PyInstaller build]
-    CHECK -->|Fail| PATCH[Bounded repair loop]
-    PATCH --> CHECK
-    LOCAL --> BIN[Executable in run release directory]
-    BIN --> DL[API download endpoint]
-    API <--> WS[WebSocket status and log updates]
-    FILES -. Separate Windows packaging workflow .-> GH[Companion build repository]
-    GH --> ACTIONS[GitHub Actions windows-latest]
-    ACTIONS --> ART[windows-exe artifact: app.exe]
+    AGENT <--> MODEL[Ollama / Qwen2.5]
+    AGENT --> FILES[Generate src/main.py and requirements.txt]
+    FILES --> CHECK{py_compile passes?}
+    CHECK -->|No| PATCH[Repair prompt with error context]
+    PATCH --> AGENT
+    CHECK -->|Yes| PUSH[Push generated project to GitHub]
+    PUSH --> DISPATCH[Dispatch Windows build workflow]
+    DISPATCH --> RUNNER[GitHub Actions windows-latest]
+    RUNNER --> PACK[Install requirements and run PyInstaller]
+    PACK --> ARTIFACT[Upload app.exe artifact]
+    ARTIFACT --> RETRIEVE[Retrieve artifact into the app]
+    RETRIEVE --> DOWNLOAD[User downloads Windows executable]
+    API <--> WS[WebSocket status and log stream]
 ```
 
-The checked-in FastAPI agent path and the remote GitHub Actions Windows packaging path should not be mistaken for the same execution path. Details of each are provided in the next section.
+### Build lifecycle
 
-## Build paths: local and GitHub Actions
+1. The user submits an application specification through the web UI.
+2. The backend creates a run and asks the coding agent to generate the source and dependency list.
+3. The agent uses its file tools to write `src/main.py` and `requirements.txt`.
+4. The backend checks Python syntax with `py_compile`.
+5. If the check fails, the agent receives the diagnostic context and attempts a bounded repair.
+6. In the demonstrated remote-packaging architecture, the generated project is pushed to GitHub and the Windows workflow is dispatched.
+7. The Windows runner installs the required packages and runs PyInstaller to produce `app.exe`.
+8. The resulting workflow artifact is retrieved and made available to the user.
 
-### In-process build in this repository
+**Code snapshot distinction:** Steps 6–8 describe the documented remote-build workflow. The current `05-magnetar-exe-builder` source snapshot instead invokes the local `build_executable_in_code()` function after syntax validation. That function runs PyInstaller in the backend's own operating-system environment. The remote push/dispatch/retrieve orchestration needs to be integrated into this source path for the complete flow above to execute automatically from this folder.
 
-The checked-in `backend/app/agent/engine.py` calls `build_executable_in_code()` after syntax validation. That function invokes PyInstaller inside the environment running the backend and places its output in the run's `release` directory.
+## Windows packaging workflow
 
-PyInstaller targets the **current operating system**. Therefore, running this in a Linux container creates a Linux executable, not a native Windows `.exe`. For a local Windows `.exe` through this path, run the backend and compilation environment on Windows.
+The companion repository contains the Windows packaging workflow:
 
-### GitHub Actions Windows build
-
-The project has also used a separate Windows packaging repository:
-
-- **Build repository:** [`shubham-61291/agentic-exe-builder_1`](https://github.com/shubham-61291/agentic-exe-builder_1)
-- **Workflow:** [`build-exe.yml`](https://github.com/shubham-61291/agentic-exe-builder_1/blob/main/.github/workflows/build-exe.yml)
+- **Repository:** [`agentic-exe-builder_1`](https://github.com/shubham-61291/agentic-exe-builder_1)
+- **Workflow file:** [`.github/workflows/build-exe.yml`](https://github.com/shubham-61291/agentic-exe-builder_1/blob/main/.github/workflows/build-exe.yml)
+- **Trigger:** `workflow_dispatch`
 - **Runner:** `windows-latest`
 - **Python:** 3.11
 - **Packager:** PyInstaller
-- **Artifact:** `windows-exe`, containing `dist/app.exe`
+- **Artifact name:** `windows-exe`
+- **Expected artifact path:** `dist/app.exe`
 
-The workflow is manually dispatched. It checks out the generated project, installs Python and PyInstaller plus any packages listed in `requirements.txt`, runs the PyInstaller command, and uploads `dist/app.exe` as the `windows-exe` artifact.
+The companion workflow checks out the repository, sets up Python, upgrades `pip`, installs PyInstaller and any packages listed in `requirements.txt`, packages `src/main.py`, and uploads `dist/app.exe` as a workflow artifact.
 
-A remote-build orchestration must push the generated `src/main.py` and `requirements.txt` to the build repository, dispatch the workflow, wait for completion, then download and extract the `windows-exe` artifact. The related Build2EXE workflow demonstrates that pattern. **That remote repository handoff is not called by the current `ReActExeAgent.run_pipeline()` in this directory**, which currently calls the in-process PyInstaller builder instead. Treat the Actions route as the separate Windows packaging workflow unless/until the handoff is integrated into this code path.
+### Dispatch requirements
+
+A workflow-dispatch request must include the workflow's required inputs. In the documented integration, a request that supplied only `ref: main` failed with HTTP 422 because the required `branch` input was missing. The corrected payload included both the ref and input:
+
+```json
+{
+  "ref": "main",
+  "inputs": {
+    "branch": "main"
+  }
+}
+```
+
+The exact payload must match the workflow definition deployed in the companion repository. Keep GitHub credentials in environment variables or a secret manager; never commit a personal access token to source control.
+
+### Why use a Windows runner?
+
+PyInstaller packages an application for the operating system on which it runs. Running the in-process builder inside a Linux Docker container does not produce a native Windows `.exe`. Delegating packaging to `windows-latest` is the platform-correct approach for a native Windows artifact.
 
 ## Technology stack
 
-| Layer | Technology |
-|---|---|
-| Backend API | Python 3.11 container image, FastAPI, Uvicorn |
-| Agent orchestration | LangChain tool calling; ReAct-style agent logic |
-| Model runtime | Ollama using the OpenAI-compatible `/v1` endpoint by default |
-| Default model | `qwen2.5-coder:32b` |
-| Optional model provider | OpenAI-compatible provider through `langchain-openai` |
-| Frontend | React 18, Vite 5, Tailwind CSS |
-| Live updates | WebSockets |
-| Validation | Python `py_compile` |
-| Packaging | PyInstaller; GitHub Actions Windows packaging in the companion workflow |
-| Containerization | Docker and Docker Compose |
+| Layer | Technology | Role |
+|---|---|---|
+| Backend | Python, FastAPI, Uvicorn | Build API, run state, WebSocket updates |
+| Frontend | React, Vite, Tailwind CSS | Requirements form, settings, live build interface |
+| Agent | LangChain tool calling and ReAct-style loop | Source generation and bounded repairs |
+| Model serving | Ollama | Local model inference |
+| Default model in the checked-in configuration | `qwen2.5-coder:32b` | Default model name in the current source snapshot |
+| Model used in the documented tool-calling setup | `qwen2.5:32b` | Base-model configuration used to address tool-calling compatibility in the demonstrated setup |
+| Validation | Python `py_compile` | Syntax check before packaging |
+| Packaging | PyInstaller | Creates an executable from the generated Python entry point |
+| Remote CI | GitHub Actions | Native Windows packaging in the companion repository |
+| Local development | Docker, Docker Compose, shell/PowerShell launchers | Run the app in local development environments |
+| Demonstration infrastructure | Google Cloud GPU VM with NVIDIA L4, as described in the portfolio README | Host local LLM inference |
+
+### Model configuration note
+
+The portfolio documentation records that `qwen2.5-coder:32b` did not reliably invoke the required file tools in the demonstrated Ollama setup, so the working tool-calling configuration was changed to `qwen2.5:32b`. The checked-in configuration in this monorepo snapshot currently defaults to `qwen2.5-coder:32b`. If file operations are skipped or the agent claims to have finished without writing files, verify the model configured in the UI and backend before debugging the build pipeline.
 
 ## Screenshots
 
-The following screenshots are stored in the repository root and rendered directly by GitHub.
+Screenshots committed with this project are referenced below.
 
 ### Main interface
 
 ![Magnetar EXE Builder main interface](./build1.png)
 
-### Entering application requirements
+### Application requirements
 
 ![Application prompt in the builder interface](./build2.png)
 
-### Build log and executable status
+### Build progress and status
 
-![Live build log and generated executable status](./build3.png)
+![Build log and executable status](./build3.png)
 
 ### Generated application example
 
 ![Example generated Snake game](./build4.png)
 
-## Repository layout
+The portfolio README describes demonstrated outputs including a Snake game, browser-related applications, PDF tools, and other applications generated from natural-language requirements. Inspect the source and run each output before relying on it.
+
+## Repository structure
 
 ```text
 05-magnetar-exe-builder/
@@ -148,6 +184,7 @@ The following screenshots are stored in the repository root and rendered directl
 ├── backend/
 │   ├── requirements.txt
 │   └── app/
+│       ├── __init__.py
 │       ├── main.py
 │       ├── config.py
 │       └── agent/
@@ -156,8 +193,8 @@ The following screenshots are stored in the repository root and rendered directl
 │           ├── sanity.py
 │           └── utils.py
 ├── frontend/
-│   ├── package.json
 │   ├── index.html
+│   ├── package.json
 │   └── src/
 │       ├── main.jsx
 │       ├── App.jsx
@@ -168,33 +205,40 @@ The following screenshots are stored in the repository root and rendered directl
 └── build4.png
 ```
 
-The repository also contains generated frontend assets and Python bytecode. Those generated directories are omitted from the structural overview above.
+The repository also contains generated frontend assets and dependency/cache directories. They are omitted from the overview above because they are build output rather than core source files.
 
 ## Run locally
 
 ### Prerequisites
 
-- Python 3.11 or compatible Python installation for the backend.
-- Node.js and npm for the React/Vite frontend.
-- Ollama installed and running, with a model available locally; the default is `qwen2.5-coder:32b`.
-- Sufficient RAM/VRAM for the selected model. The 32B model can require substantial system resources.
+- Python 3.11 or a compatible version supported by the backend dependencies.
+- Node.js and npm for the frontend.
+- Ollama running locally or reachable from the backend.
+- A model pulled into Ollama that is compatible with the configured tool-calling behavior. The checked-in source defaults to `qwen2.5-coder:32b`; the documented setup used `qwen2.5:32b` to address file-tool compatibility.
+- Sufficient memory/VRAM for the selected model. A 32B model can require substantial resources.
 
-### 1. Clone the repository
+### 1. Clone the monorepo
 
 ```bash
 git clone https://github.com/shubham-61291/production-ai-engineering.git
 cd production-ai-engineering/05-magnetar-exe-builder
 ```
 
-### 2. Start Ollama and pull the default model
+### 2. Start Ollama and pull the model
 
-In a separate terminal, ensure Ollama is running and pull the configured model:
+For the current checked-in default:
 
 ```bash
 ollama pull qwen2.5-coder:32b
 ```
 
-If Ollama is running on a different host or port, update `OLLAMA_BASE_URL` or specify the URL in the UI settings.
+For the base-model configuration documented as more reliable for tool calling:
+
+```bash
+ollama pull qwen2.5:32b
+```
+
+Use the model name that matches your application settings. Ensure the Ollama API is reachable at the configured base URL before starting a build.
 
 ### 3. Start the application on Windows
 
@@ -204,7 +248,7 @@ From PowerShell in the project directory:
 .\start.ps1
 ```
 
-The launcher starts the FastAPI backend on `http://127.0.0.1:8000` and the Vite development server on `http://127.0.0.1:3000`. Open the frontend at `http://localhost:3000`.
+The launcher is intended to start the backend and frontend development servers. If a local setup differs, check the launcher and its terminal output for the actual ports. In the checked-in development configuration, the API uses port `8000` and the Vite frontend uses port `3000`.
 
 ### 4. Start the application on Linux
 
@@ -213,39 +257,39 @@ chmod +x start.sh
 ./start.sh
 ```
 
-The launcher starts the API on `127.0.0.1:8000` and Vite on port `3000`. The checked-in Vite configuration proxies `/api` and `/ws` requests to the backend on port `8000`.
+The development frontend proxies `/api` and `/ws` requests to the FastAPI backend. Confirm that both processes start successfully before submitting a build.
 
 ### 5. Generate an application
 
 1. Open `http://localhost:3000`.
-2. Enter the requirements for the application.
-3. Review the selected model provider and model in settings if necessary.
-4. Start the build and follow the live status and logs.
-5. Inspect the generated source and requirements.
-6. Download the resulting binary once the build reports completion.
+2. Enter a specific application requirement, including desired behavior and key interactions.
+3. Check the model and provider in settings.
+4. Start the build and observe the live status and log output.
+5. Inspect the generated source and `requirements.txt` before running the result.
+6. Download the executable when the run reports it is ready and a binary is available.
 
-Example requirement:
+Example prompt:
 
 ```text
-Create a Snake game with arrow-key controls, score display, collision detection,
-restart functionality, and retro styling. Include a clear help message and keep
-all generated source in src/main.py.
+Create a Snake game with arrow-key controls, a visible score, collision detection,
+restart functionality, and retro styling. Generate the entry point at src/main.py
+and include any required Python dependencies in requirements.txt.
 ```
 
 ## Docker Compose
 
-The repository includes a Compose service that builds the backend image and exposes port `8000`:
+The checked-in Compose configuration builds and runs the backend service on port `8000`:
 
 ```bash
 docker compose up -d --build
 docker compose logs -f app
 ```
 
-The Compose configuration points the container at the host's Ollama service using `host.docker.internal:11434`. On Linux, the Compose file adds the host-gateway mapping for that hostname.
+The Compose service points Ollama at the host using `http://host.docker.internal:11434` and adds a host-gateway mapping for that hostname. Confirm that Ollama is running on the host and that the container can reach it.
 
-**Frontend note:** Compose defines only the `app` service. Although the Dockerfile builds the frontend and copies its assets into `frontend_dist`, the checked-in FastAPI entry point does not mount or serve that directory. Use the local launcher for the Vite UI, or add a static-file/proxy serving configuration before expecting the UI to be available from the Compose port alone.
+**Frontend note:** The Compose file defines the backend service only. The Dockerfile builds frontend assets, but the checked-in FastAPI entry point does not serve the compiled frontend directory as a website. For the full UI during development, use `start.ps1` or `start.sh`, or add and validate a static-file/reverse-proxy configuration for the deployment you intend to use.
 
-**Build target note:** The in-process PyInstaller path uses the container's operating system. A Linux container does not produce a native Windows `.exe`; use the separate GitHub Actions Windows packaging workflow or run the in-process build on Windows.
+**Windows build note:** The in-process PyInstaller path produces a binary for the backend's operating system. A Linux container cannot produce a native Windows `.exe` using that path. Use the companion GitHub Actions Windows workflow for Windows-native packaging; the remote handoff is not currently wired into the local build path in this source snapshot.
 
 ## API reference
 
@@ -253,13 +297,13 @@ The API listens on port `8000` by default.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `GET` | `/api/health` | Reports configured model details and whether the configured Ollama endpoint responds |
+| `GET` | `/api/health` | Reports application/model health information and whether the configured Ollama endpoint responds |
 | `POST` | `/api/build` | Starts a generation/build run and returns a `run_id` |
-| `GET` | `/api/runs/{run_id}` | Retrieves the run state, logs, generated source/dependencies when available, and executable readiness |
-| `GET` | `/api/download/{run_id}` | Downloads the binary found in that run's `release` directory |
-| `WS` | `/ws/build/{run_id}` | Streams run status, logs, source previews, and executable readiness updates |
+| `GET` | `/api/runs/{run_id}` | Retrieves run state, logs, generated source/dependencies when available, and executable readiness |
+| `GET` | `/api/download/{run_id}` | Downloads a binary found in that run's `release` directory |
+| `WS` | `/ws/build/{run_id}` | Streams status, logs, source previews, and readiness updates |
 
-### Example: start a build
+### Start a build
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/build \
@@ -267,75 +311,119 @@ curl -X POST http://127.0.0.1:8000/api/build \
   -d '{
     "requirements": "Create a desktop calculator with keyboard support and a clear display.",
     "provider": "ollama",
-    "model": "qwen2.5-coder:32b",
+    "model": "qwen2.5:32b",
     "base_url": "http://localhost:11434",
     "api_key": ""
   }'
 ```
 
-A successful response returns a `run_id`. Use it to check progress:
+The response includes a `run_id`. Check the run status with:
 
 ```bash
 curl http://127.0.0.1:8000/api/runs/<run_id>
 ```
 
-When the run has a binary in its release directory, download it with:
+If the run contains a downloadable binary, use:
 
 ```text
 http://127.0.0.1:8000/api/download/<run_id>
 ```
 
-For the separate GitHub Actions workflow, artifact retrieval is a distinct step performed by the orchestration that dispatches the remote workflow; the local download endpoint above reads the local run directory.
+This download endpoint searches the local run directory. It should not be interpreted as proof that remote GitHub Actions artifacts are being retrieved automatically by the current checked-in orchestration.
 
 ## Configuration
 
-The backend reads configuration from environment variables. The checked-in defaults are:
+The current backend configuration includes the following settings. Defaults can differ between the backend configuration, UI settings, and the environment in which the service is launched; verify the actual effective values when troubleshooting.
 
-| Variable | Default | Purpose |
+| Variable | Default / behavior | Purpose |
 |---|---|---|
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama base URL |
-| `OLLAMA_MODEL` | `qwen2.5-coder:32b` | Default local model |
-| `OPENAI_API_KEY` | empty | Optional key for the OpenAI provider |
-| `OPENAI_MODEL` | `gpt-4o-mini` | Default model when OpenAI is selected |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` in backend configuration; Compose targets `http://host.docker.internal:11434` | Ollama endpoint |
+| `OLLAMA_MODEL` | `qwen2.5-coder:32b` in the checked-in configuration | Default local model |
 | `DEFAULT_PROVIDER` | `ollama` | Default provider (`ollama` or `openai`) |
-| `MAX_REACT_STEPS` | `18` | Maximum tool-calling steps per agent phase |
+| `OPENAI_API_KEY` | Empty unless supplied | Credential for the optional OpenAI provider |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Default OpenAI model when selected |
+| `MAX_REACT_STEPS` | `18` | Maximum agent tool-calling steps per phase |
 | `MAX_PATCH_ROUNDS` | `4` | Maximum repair rounds after syntax-check failures |
-| `WORKSPACE_DIR` | backend workspace directory | Parent directory for generated runs |
-| `COPYRIGHT_LINE` | `© 2026 Shubham Singh. All rights reserved.` | Required visible copyright line instructed in generated applications |
+| `WORKSPACE_DIR` | Backend-defined workspace directory | Parent directory for per-run workspaces |
+| `COPYRIGHT_LINE` | `© 2026 Shubham Singh. All rights reserved.` | Visible copyright line instructed for generated applications |
 
-The UI allows model/provider settings to be supplied for an individual build. Do not place real API keys in source code or commit them to the repository. For the Docker Compose service, the Ollama URL defaults to `http://host.docker.internal:11434`.
+The UI can supply model/provider settings for a specific build. Never put live API keys or GitHub tokens in source code or commit them to the repository.
 
-## Validation and limitations
+## Engineering challenges and decisions
 
-- **Syntax validation only:** `py_compile` catches syntax errors; it does not test application behavior, UI flows, calculations, or runtime imports.
-- **Bounded repair:** the default limit is four patch rounds. A generation may fail after that limit.
-- **Local build is platform-dependent:** local PyInstaller packaging targets the OS running the backend.
-- **GitHub Actions is a separate build path:** the companion workflow runs on `windows-latest`, uses Python 3.11 and PyInstaller, and uploads the `windows-exe` artifact. The current `ReActExeAgent` code in this directory calls the local PyInstaller implementation; the remote repository dispatch/artifact retrieval is not wired into this code path in the checked-in snapshot.
-- **In-memory run state:** run tracking and WebSocket subscriber lists are stored in process memory. Restarting the backend loses the in-memory state even if some run files remain on disk.
-- **Concurrent jobs:** the API starts work in background tasks, but it is an MVP rather than a durable distributed job queue.
-- **Model availability:** output quality and generation time depend on the chosen model, hardware, endpoint, and prompt clarity.
-- **Generated app dependencies:** dependency installation may fail or produce incompatible packages. Inspect generated `requirements.txt` and application code before use.
-- **Unsigned executables:** generated programs are not code-signed by this project. Windows SmartScreen or endpoint security software may display warnings.
-- **Repository hygiene:** the visible repository tree includes `frontend/node_modules`, built `frontend/dist` assets, and Python `__pycache__` files. A clean development distribution should exclude generated dependencies and bytecode from source control.
-- **License file:** the existing README declares MIT, but a `LICENSE` file was not found in this project directory. Include the full license text before relying on the notice for redistribution.
+The portfolio's project notes document the following engineering lessons from the demonstrated build environment.
 
-## Security notes
+### 1. Cross-platform compilation
 
-- Generated code is executable code. Review the source and dependency list before running the output, especially if requirements involve file access, network operations, credentials, subprocesses, or system changes.
-- Do not build untrusted prompts on a machine that has privileged credentials or sensitive files available to the generated program.
-- Keep Ollama and the API bound to trusted interfaces. The API currently configures permissive CORS (`*`) and does not implement authentication for build endpoints; do not expose it directly to an untrusted network.
-- The optional OpenAI provider sends the prompt and generation context to the configured OpenAI service. Do not include secrets or private data in requirements unless that disclosure is intended.
-- Treat GitHub tokens and workflow credentials as secrets. Use a dedicated token with only the permissions required to push generated branches, dispatch the build workflow, and download artifacts.
-- Before using a public build endpoint, add authentication, rate limiting, isolation between users, cleanup policies, and resource limits for model calls and compilation.
+**Problem:** PyInstaller running in a Linux container cannot create a native Windows executable.
 
-## Author
+**Decision:** Use a `windows-latest` GitHub Actions runner for the native Windows packaging stage. Keep this remote packaging stage distinct from the in-process builder currently present in the monorepo source snapshot.
+
+### 2. Model tool-calling compatibility
+
+**Problem:** The specialized `qwen2.5-coder:32b` model was reported to fail to reliably execute the file-writing/reading tools in the demonstrated Ollama setup.
+
+**Decision:** The documented working configuration switched to `qwen2.5:32b`. If an agent says it completed the task but the files were not created, verify tool calls and model compatibility before proceeding to compilation.
+
+### 3. Stale Docker layers
+
+**Problem:** Docker's build cache can preserve an older build engine or application code after changes.
+
+**Troubleshooting:**
+
+```bash
+docker compose build --no-cache
+docker compose up -d
+```
+
+Use `docker cp` only when intentionally replacing a file inside an existing container for diagnosis; rebuild the image and recreate the container for a reproducible deployment.
+
+### 4. Missing destination directory
+
+**Problem:** Copying generated source can fail when the destination directory does not exist.
+
+**Defensive pattern:**
+
+```python
+os.makedirs(os.path.dirname(dst), exist_ok=True)
+```
+
+Ensure the destination directory exists before copying generated files into the packaging workspace.
+
+### 5. GitHub workflow dispatch returns HTTP 422
+
+**Problem:** The workflow requires a `branch` input in addition to the workflow ref.
+
+**Decision:** Send the required input exactly as declared in the deployed workflow definition. The documented payload includes both `ref: "main"` and `inputs: {"branch": "main"}`.
+
+### 6. Reverse-proxy configuration resets
+
+The broader deployment notes describe Nginx configuration reverting to its default after a container rebuild, which removed `/api/` and `/ws/` proxy rules. The deployment-level fix was to mount a maintained custom `nginx.conf` through Docker Compose. **The current `05-magnetar-exe-builder` folder does not include that Nginx configuration**, so apply this lesson only if adding the same reverse-proxy layer to your deployment.
+
+## Limitations and security
+
+- **Syntax is not correctness:** `py_compile` catches Python syntax errors; it does not test UI interactions, business logic, runtime imports, network calls, or packaging behavior.
+- **Bounded repairs:** a build can still fail after the configured patch-round limit.
+- **Platform-specific local builds:** local PyInstaller output matches the backend's operating system. Native Windows packaging requires Windows, such as the companion Actions workflow.
+- **Workflow integration gap in this snapshot:** remote GitHub push, dispatch, and artifact retrieval are described in the documented architecture but are not called by the current `ReActExeAgent.run_pipeline()` in this folder.
+- **In-memory run state:** run records and WebSocket subscriber state are held in process memory; restarting the backend may lose state even if files remain on disk.
+- **MVP concurrency model:** background tasks are not a durable distributed job queue.
+- **Model-dependent quality:** results depend on model behavior, available compute, prompt quality, and tool-calling compatibility.
+- **Generated dependencies:** generated packages may be incompatible, malicious, or unnecessary. Review the source and dependency list before installation or execution.
+- **Unsigned executables:** the project does not sign generated executables; Windows SmartScreen or endpoint protection may warn users.
+- **Network exposure:** the checked-in API configuration uses permissive CORS and does not provide authentication for build endpoints. Do not expose the API to an untrusted network without adding authentication, rate limiting, user/run isolation, request validation, resource limits, and cleanup policies.
+- **Credential handling:** use narrowly scoped GitHub credentials and store them as secrets. A token used for workflow dispatch, repository writes, or artifact downloads must have only the permissions that workflow actually needs.
+- **External model providers:** when the OpenAI provider is selected, prompts and generation context are sent to that provider. Do not submit confidential content unless that disclosure is intended.
+- **Repository hygiene:** generated frontend assets, dependency folders, and Python bytecode appear in the repository tree; avoid committing generated dependencies and caches in a cleaned-up distribution.
+- **License notice:** the project README in this folder did not include a `LICENSE` file in the inspected tree. Add the full license text before relying on an MIT license declaration for redistribution.
+
+## Author and license
 
 **Shubham Kumar Singh**
 
 - GitHub: [@shubham-61291](https://github.com/shubham-61291)
-- Project repository: [production-ai-engineering/05-magnetar-exe-builder](https://github.com/shubham-61291/production-ai-engineering/tree/main/05-magnetar-exe-builder)
-- Companion Windows packaging workflow: [agentic-exe-builder_1](https://github.com/shubham-61291/agentic-exe-builder_1)
+- Monorepo: [`production-ai-engineering`](https://github.com/shubham-61291/production-ai-engineering)
+- This project: [`05-magnetar-exe-builder`](https://github.com/shubham-61291/production-ai-engineering/tree/main/05-magnetar-exe-builder)
+- Companion Windows workflow: [`agentic-exe-builder_1`](https://github.com/shubham-61291/agentic-exe-builder_1)
 
-## License
-
-The existing project README declares the MIT License. However, the project directory inspected for this README did not contain a `LICENSE` file. Add the complete MIT License text to the repository before relying on that declaration for redistribution.
+The project README has historically described the project as MIT-licensed, but a `LICENSE` file was not present in the project folder during inspection. Add the complete MIT license text to the repository if MIT is the intended license.
